@@ -1,0 +1,202 @@
+<Ui>
+    <Frame name="ClassicEraCensusSearchResultsListviewItemTemplate" mixin="ClassicEraCensusSearchResultsListviewItemMixin" enableMouse="true" virtual="true">
+        <Layers>
+            <Layer level="HIGHLIGHT">
+                <Texture setAllPoints="true" atlas="search-highlight-large"/>
+            </Layer>
+            <Layer level="ARTWORK">
+                <Texture parentKey="icon">
+                    <Anchors>
+                        <Anchor point="LEFT" x="6" y="0"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <FontString parentKey="name" inherits="GameFontNormal" justifyH="LEFT">
+                    <Color r="1" g="1" b="1"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="30" y="0"/>
+                        <Anchor point="RIGHT" x="-2" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Frame>
+
+    <CheckButton name="ClassicEraCensusCheckButton" inherits="ChatConfigCheckButtonTemplate" virtual="true">
+        <CheckedTexture atlas="orderhalltalents-done-checkmark"/>
+        <Size x="24" y="24"/>
+        <HitRectInsets left="0" right="-10"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="label" inherits="GameFontNormal" justifyH="LEFT">
+                    <Color r="1" g="1" b="1" a="1"/>
+                    <Size x="280" y="26"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="24" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </CheckButton>
+
+    <Frame name="ClassicEraCensusBasicListviewItemTemplate" mixin="ClassicEraCensusBasicListviewItemMixin" virtual="true" enableMouse="true">
+        <Layers>
+            <Layer level="HIGHLIGHT">
+                <Texture setAllPoints="true" atlas="search-highlight-large"/>
+            </Layer>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="background" setAllPoints="true" atlas="vas-receipt-greenbg" hidden="true"/>
+            </Layer>
+            <Layer level="OVERLAY">
+                <FontString parentKey="text" inherits="GameFontNormal" justifyH="LEFT">
+                    <Color r="1" g="1" b="1" a="1"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="0" y="0"/>
+                        <Anchor point="RIGHT" x="0" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Frame>
+
+    <Frame name="ClassicEraCensusCensusHistoryListviewItemTemplate" mixin="ClassicEraCensusCensusHistoryListviewItemMixin" inherits="ClassicEraCensusBasicListviewItemTemplate" virtual="true">
+
+    </Frame>
+
+    <Frame name="ClassicEraCensusHomeTabGuildsListviewItemTemplate" mixin="ClassicEraCensusHomeTabGuildsListviewItemMixin" inherits="ClassicEraCensusBasicListviewItemTemplate" virtual="true">
+
+    </Frame>
+
+
+    <Frame name="ClassicEraCensusBarChartBarTemplate" mixin="ClassicEraCensusBarChartBarMixin" virtual="true">
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="iconBackground">
+                    <Color r="0.55" g="0.55" b="0.58" a="0"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="0" y="0"/>
+                        <Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="barBackground" hidden="true">
+                    <Color r="0.55" g="0.55" b="0.58" a="0.2"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="0" y="0"/>
+                        <Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK">
+                <Texture parentKey="icon">
+                    <Anchors>
+                        <Anchor point="BOTTOM" x="0" y="1"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <Texture parentKey="bar">
+                    <Anchors>
+                        <Anchor point="BOTTOM" relativeKey="$parent.icon" relativePoint="TOP" x="0" y="0"/>
+                    </Anchors>
+                </Texture>
+                <FontString parentKey="text" inherits="GameFontNormalSmall" justifyH="CENTER">
+                    <Color r="1" g="1" b="1" a="1"/>
+                    <Anchors>
+                        <Anchor point="BOTTOM" relativeKey="$parent.bar" relativePoint="TOP" x="0" y="4"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Frame>
+
+
+    <Frame name="ClassicEraCensusHelpTipTemplate_BottomArrow" inherits="GlowBoxTemplate" mixin="ClassicEraCensusHelpTipMixin" virtual="true" enableMouse="true" frameStrata="TOOLTIP">
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString parentKey="text" inherits="GameFontHighlightLeft" justifyH="LEFT" justifyV="TOP">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="5" y="-5"/>
+                        <Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
+                    </Anchors>
+                </FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="Arrow" inherits="GlowBoxArrowTemplate">
+				<Size x="61" y="61"/>
+				<Anchors>
+					<Anchor point="BOTTOM" x="0" y="-60"/>
+				</Anchors>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnShow method="OnShow"/>
+		</Scripts>
+	</Frame>
+
+	<Frame name="ClassicEraCensusHelpTipTemplate_RightArrow" inherits="GlowBoxTemplate" mixin="ClassicEraCensusHelpTipMixin" virtual="true" enableMouse="true" frameStrata="TOOLTIP">
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString parentKey="text" inherits="GameFontHighlightLeft" justifyH="LEFT" justifyV="TOP">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="5" y="-5"/>
+                        <Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="background">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="1" y="-1"/>
+						<Anchor point="BOTTOMRIGHT" x="-1" y="1"/>
+					</Anchors>
+					<Color r="1" g="1" b="1"/>
+					<Gradient orientation="VERTICAL">
+						<MaxColor r="0.23" g="0.19" b="0"/>
+						<MinColor r="0" g="0" b="0"/>
+					</Gradient>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="Arrow" inherits="GlowBoxArrowTemplate">
+				<Size x="61" y="61"/>
+				<Anchors>
+					<Anchor point="BOTTOM" relativePoint="TOP" x="0" y="-30"/>
+				</Anchors>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnShow method="OnShow"/>
+            <OnLoad>
+                self.BG:Hide()
+                self.Arrow:ClearAllPoints()
+                self.Arrow:SetPoint("RIGHT", 36, 0)
+                self.Arrow.Arrow:ClearAllPoints()
+                self.Arrow.Arrow:SetPoint("RIGHT", 0, -1)
+                self.Arrow.Arrow:SetRotation(1.57)
+                self.Arrow.Glow:ClearAllPoints()
+                self.Arrow.Glow:SetPoint("RIGHT", 10, 0)
+                self.Arrow.Glow:SetRotation(1.57)
+            </OnLoad>
+		</Scripts>
+	</Frame>
+
+    <Slider name="ClassicEraCensusSlider" minValue="1" maxValue="60" defaultValue="60" valueStep="1" inherits="OptionsSliderTemplate" virtual="true">
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="label" inherits="GameFontNormalSmall">
+                    <Anchors>
+                        <Anchor point="RIGHT" relativePoint="LEFT" x="-5" y="0"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="value" inherits="GameFontNormal">
+                    <Anchors>
+                        <Anchor point="LEFT" relativePoint="RIGHT" x="5" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Slider>
+</Ui>
