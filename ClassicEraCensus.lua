@@ -11,8 +11,20 @@ local L = {
 
     HOME_IS_QUICK_CENSUS_LABEL = "Quick Scan",
 
-    HOME_CENSUS_HISTORY_HELPTIP = "Your census records are listed here. Click to view records, you can select multiple records.\n\nMerged records are shown as blue.",
+    HOME_CENSUS_HISTORY_HELPTIP = [[
+Census records are listed here.
+
+%s Merged records are shown
+with this icon.
+
+You can select multiple records 
+to view census data.
+
+You can merge or delete selected
+records.
+]],
     HOME_CLASSES_HELPTIP = "You can select different parts on the charts to filter the results.",
+    HOME_FILTERS_HELPTIP = "Adjust the level range and race/class filters to view data."
 }
 
 local alphabet = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", }
@@ -156,7 +168,6 @@ function ClassicEraCensusMixin:OnLoad()
     self.numTabs = #self.tabs
     self.tab1:SetText(HOME)
     self.tab2:SetText(OPTIONS)
-    self.tab3:SetText(L.TABS_DATABASE)
 
     PanelTemplates_SetNumTabs(self, self.numTabs);
     PanelTemplates_SetTab(self, 1);
@@ -176,9 +187,9 @@ function ClassicEraCensusMixin:OnLoad()
 
     end)
 
-    self.database:SetScript("OnShow", function()
-        self:UpdateQueryQueue()
-    end)
+    -- self.database:SetScript("OnShow", function()
+    --     self:UpdateQueryQueue()
+    -- end)
 
     hooksecurefunc("SetItemRef", function(link)
         local linkRef, addon = strsplit("?", link)
@@ -293,8 +304,9 @@ function ClassicEraCensusMixin:SetupHomeTab()
         StaticPopup_Show("ClassicEraCensusDeleteConfirm", nil, nil, self.censusGroup)
     end)
 
-    self.home.censusHistoryHelptip:SetText(L.HOME_CENSUS_HISTORY_HELPTIP)
+    self.home.censusHistoryHelptip:SetText(L.HOME_CENSUS_HISTORY_HELPTIP:format(CreateAtlasMarkup("poi-workorders", 16, 16)))
     self.home.classesHelptip:SetText(L.HOME_CLASSES_HELPTIP)
+    self.home.levelSliderHelptip:SetText(L.HOME_FILTERS_HELPTIP)
 
     self.home.races.bars = {}
     self.home.classes.bars = {}
@@ -393,6 +405,8 @@ function ClassicEraCensusMixin:CensusLevelRange_OnChanged()
         j = j + 1
     end
 
+    self:FilterCensus(self.censusGroup)
+
 end
 
 function ClassicEraCensusMixin:Database_OnCensusTableChanged()
@@ -427,11 +441,26 @@ end
 function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
     
     local exists, key = false, nil
+    local realmCheck, factionCheck = true, true
     for k, v in ipairs(self.censusGroup) do
         if (v.author == census.author) and (v.timestamp == census.timestamp) then
             exists = true;
             key = k
         end
+        if census.realm ~= v.realm then
+            realmCheck = false
+        end
+        if census.faction ~= v.faction then
+            factionCheck = false;
+        end
+    end
+    if realmCheck == false then
+        print("Census is from a different realm!")
+        return;
+    end
+    if factionCheck == false then
+        print("Census is from a different faction!")
+        return;
     end
     if census.selected == true and exists == false then
         table.insert(self.censusGroup, census)
@@ -441,6 +470,13 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
     end
 
     self:LoadCensusGroup(self.censusGroup)
+
+    if #self.censusGroup == 0 then
+        self.home.censusInfoText:SetText("No census selected")
+    else
+        self.home.censusInfoText:SetText(string.format("Selected %d, %d characters", #self.censusGroup, #census.characters))
+    end
+
 end
 
 
@@ -451,12 +487,14 @@ function ClassicEraCensusMixin:Census_Start()
         realm = GetNormalizedRealmName();
     end
 
+    local faction = UnitFactionGroup("player")
+
     self.currentCensus = {
         timestamp = time(),
         author = string.format("%s-%s", name, realm),
         realm = realm,
         --region = "",
-        faction = "",
+        faction = faction,
         characters = {},
         charactersSeen = {},
     };
@@ -494,16 +532,15 @@ function ClassicEraCensusMixin:ClearAllFilters()
     self.home.guilds.selectedGuild = false;
 end
 
-function ClassicEraCensusMixin:SetAllFilters()
+function ClassicEraCensusMixin:SetAllRaceFilters()
     for k, bar in pairs(self.home.races.bars) do
         bar.selected = true
         bar.barBackground:SetShown(bar.selected)
     end
+end
+
+function ClassicEraCensusMixin:SetAllClassFilters()
     for k, bar in pairs(self.home.classes.bars) do
-        bar.selected = true
-        bar.barBackground:SetShown(bar.selected)
-    end
-    for k, bar in pairs(self.home.levels.bars) do
         bar.selected = true
         bar.barBackground:SetShown(bar.selected)
     end
@@ -533,7 +570,12 @@ end
 
 function ClassicEraCensusMixin:FilterCensus(censusGroup)
 
-    local isFiltered = false;
+    local levelRange = {
+        [1] = math.ceil(self.home.ribbon.minLevel:GetValue()),
+        [2] = math.ceil(self.home.ribbon.maxLevel:GetValue()),
+    }
+
+    local isClassFiltered, isRaceFiltered = false, false;
     
     local guild = self.home.guilds.selectedGuild;
 
@@ -543,7 +585,7 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     local races, classes, levels = {}, {}, {};
     for k, bar in pairs(self.home.races.bars) do
         if bar.selected then
-            isFiltered = true;
+            isRaceFiltered = true;
             races[k:lower()] = true
 
             --filteredRaces = string.format("%s %s", filteredRaces, k)
@@ -551,7 +593,7 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     end
     for k, bar in pairs(self.home.classes.bars) do
         if bar.selected then
-            isFiltered = true;
+            isClassFiltered = true;
             classes[k:lower()] = true
 
             --filteredClasses = string.format("%s %s", filteredClasses, k)
@@ -560,14 +602,15 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
 
     --self.home.censusInfoText:SetText(string.format("Races: %s, Classes %s", filteredRaces, filteredClasses))
 
-    for k, bar in pairs(self.home.levels.bars) do
-        if bar.selected then
-            isFiltered = true;
-            levels[k] = true
+    if levelRange then
+        for level = levelRange[1], levelRange[2] do
+            levels[level] = true
         end
+        --isFiltered = true;
     end
+
     if self.home.guilds.selectedGuild then
-        isFiltered = true
+        --isFiltered = true
     end
 
     if not censusGroup then
@@ -578,7 +621,15 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
         return
     end
 
-    if isFiltered == false then
+    if isRaceFiltered == false then
+        --self:SetAllRaceFilters()
+    end
+
+    if isClassFiltered == false then
+        --self:SetAllClassFilters()
+    end
+
+    if isRaceFiltered == false and isClassFiltered == false then
         self:LoadCensusGroup(censusGroup)
         return;
     end
@@ -588,97 +639,50 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
         faction = censusGroup[1].faction,
     }
 
-
-    local function generateRaceCheck()
-        return function(character)
-            if character.race == "Night Elf" then
-                if races["nightelf"] then
-                    return true
-                end
-            else
-                if races[character.race:lower()] then
-                    return true
-                end
-            end
-
-            -- if guild then
-            --     if character.guild == guild then
-            --         if character.race == "Night Elf" then
-            --             if races["nightelf"] then
-            --                 return true
-            --             end
-            --         else
-            --             if races[character.race:lower()] then
-            --                 return true
-            --             end
-            --         end
-            --     end
-            -- else
-            --     if character.race == "Night Elf" then
-            --         if races["nightelf"] then
-            --             return true
-            --         end
-            --     else
-            --         if races[character.race:lower()] then
-            --             return true
-            --         end
-            --     end
-            -- end
-        end
-    end
-    local function generateClassCheck()
-        return function(character)
-            if classes[character.class:lower()] then
-                return true
-            end
-
-            -- if guild then
-            --     if (character.guild == guild) and classes[character.class:lower()] then
-            --         return true
-            --     end
-            -- else
-            --     if classes[character.class:lower()] then
-            --         return true
-            --     end
-            -- end
-        end
-    end
-    local function generateLevelCheck()
-        return function(character)
-            if levels[character.level] then
-                return true
-            end
-
-            -- if guild then
-            --     if (character.guild == guild) and levels[character.level] then
-            --         return true
-            --     end
-            -- else
-            --     if levels[character.level] then
-            --         return true
-            --     end
-            -- end
-        end
-    end
-    -- local function generateGuildCheck()
+    -- local function generateLevelFilter()
     --     return function(character)
-    --         if character.guild == guild then
+    --         if levels[character.level] then
     --             return true
     --         end
     --     end
     -- end
 
-    local checks = {
-        generateRaceCheck(),
-        generateClassCheck(),
-        generateLevelCheck(),
-        --generateGuildCheck(),
+    local function generateRaceFilter()
+        return function(character)
+            if levels[character.level] then
+                if character.race == "Night Elf" then
+                    if races["nightelf"] then
+                        return true
+                    end
+                else
+                    if races[character.race:lower()] then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    local function generateClassFilter()
+        return function(character)
+            if levels[character.level] then
+                if classes[character.class:lower()] then
+                    return true
+                end
+            end
+        end
+    end
+
+
+    local filters = {
+        generateRaceFilter(),
+        generateClassFilter(),
     }
+
     
     local characters, guildCheck
     if guild then
         characters = {}
-        --guildCheck = generateGuildCheck()
+        --guildCheck = generateGuildFilter()
         for _, census in ipairs(censusGroup) do
             for k, character in ipairs(census.characters) do
                 if character.guild == guild then
@@ -688,8 +692,8 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
         end
 
         for k, character in ipairs(characters) do
-            for k, check in ipairs(checks) do
-                if check(character) == true then
+            for k, filter in ipairs(filters) do
+                if filter(character) == true then
                     table.insert(t.characters, character)
                 end
             end
@@ -699,8 +703,8 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
 
         for _, census in ipairs(censusGroup) do
             for k, character in ipairs(census.characters) do
-                for k, check in ipairs(checks) do
-                    if check(character) == true then
+                for k, filter in ipairs(filters) do
+                    if filter(character) == true then
                         table.insert(t.characters, character)
                     end
                 end
@@ -816,17 +820,6 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
     --     self.home.censusInfoText:SetText(string.format("%d census > %d characters", #self.censusGroup, characterCount))
     -- end
 
-
-    table.sort(characters, function(a, b)
-        if a.name == b.name then
-            return a.class < b.class
-        else
-            return a.name < b.name
-        end
-    end)
-
-    self.database.results.DataProvider:Flush()
-    self.database.results.DataProvider:InsertTable(characters)
 end
 
 function ClassicEraCensusMixin:WhoList_OnUpdate()
@@ -841,7 +834,7 @@ function ClassicEraCensusMixin:WhoList_OnUpdate()
 
         table.remove(self.queries, self.currentQueryIndex)
 
-        print("to many characters, lets add per level searches")
+        --print("to many characters, lets add per level searches")
         
         --make a batch of jobs to who per level
         if not query.level then

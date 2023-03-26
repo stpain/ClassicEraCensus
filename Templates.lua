@@ -42,7 +42,7 @@ function ClassicEraCensusBarChartBarMixin:SetWidthHeight(w, h)
     self.iconBackground:SetSize(w,w)
     self.icon:SetSize(w-2,w-2)
     self.bar:SetWidth(w-2)
-    self.barHeight = h-w-2;
+    self.barHeight = h-w-2
     self.width = w;
     self.height = h;
 end
@@ -50,6 +50,8 @@ end
 --nasty hack to just hide the icon
 function ClassicEraCensusBarChartBarMixin:SetNoIcon()
     self.icon:SetSize(self.width,1)
+    local x, y = self:GetSize()
+    self.barHeight = y
 end
 
 function ClassicEraCensusBarChartBarMixin:SetIcon(icon)
@@ -93,6 +95,13 @@ function ClassicEraCensusBarChartBarMixin:SetBarValue(val, maxVal)
     self.bar:SetHeight(textureHeight)
 
     self.text:SetText(string.format("%s\n(%s%%)", val, string.format("%.1f",percent)))
+
+    self.text:ClearAllPoints()
+    if percent > 77 then
+        self.text:SetPoint("TOP", self.bar, "TOP", 0, -4)
+    else
+        self.text:SetPoint("BOTTOM", self.bar, "TOP", 0, 4)
+    end
 end
 
 function ClassicEraCensusBarChartBarMixin:ShowValues(bool)
@@ -115,10 +124,9 @@ ClassicEraCensusCensusHistoryListviewItemMixin = {}
 function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, height)
     self:SetHeight(height)
 
-    self.text:SetText(date('%Y-%m-%d %H:%M:%S', binding.timestamp))
-
     if binding.merged == true then
-        self.text:SetTextColor(39/255,183/255,222/255,1)
+
+        self.text:SetText(string.format("%s %s", CreateAtlasMarkup("poi-workorders", 16, 16), date('%Y-%m-%d %H:%M:%S', binding.timestamp))) --poi-alliance
 
         self:SetScript("OnEnter", function()
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")
@@ -129,9 +137,19 @@ function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, 
             end
             GameTooltip:Show()
         end)
-    else
+
         self.text:SetTextColor(1,1,1,1)
+
+    else
+        if binding.faction == "Alliance" then
+            self.text:SetText(string.format("%s %s", CreateAtlasMarkup("poi-alliance", 16, 16), date('%Y-%m-%d %H:%M:%S', binding.timestamp)))
+            self.text:SetTextColor(21/255, 101/255, 192/255, 1) --21,101,192
+        else
+            self.text:SetText(string.format("%s %s", CreateAtlasMarkup("poi-horde", 16, 16), date('%Y-%m-%d %H:%M:%S', binding.timestamp)))
+            self.text:SetTextColor(212/255, 37/255, 32/255, 1) --212,37,32
+        end
     end
+
 
     self:SetScript("OnLeave", function()
         GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)

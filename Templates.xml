@@ -183,7 +183,7 @@
 		</Scripts>
 	</Frame>
 
-    <Slider name="ClassicEraCensusSlider" minValue="1" maxValue="60" defaultValue="60" valueStep="1" inherits="OptionsSliderTemplate" virtual="true">
+    <Slider name="ClassicEraCensusSlider" minValue="1" maxValue="60" valueStep="1" inherits="OptionsSliderTemplate" virtual="true">
         <Layers>
             <Layer level="OVERLAY">
                 <FontString parentKey="label" inherits="GameFontNormalSmall">

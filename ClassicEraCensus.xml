@@ -30,7 +30,7 @@
 
     <Frame name="ClassicEraCensusUI" mixin="ClassicEraCensusMixin" inherits="PortraitFrameTemplate" parent="UIParent" enableMouse="true" movable="true">
 
-        <Size x="900" y="420"/>
+        <Size x="940" y="420"/>
 
         <Anchors>
             <Anchor point="CENTER" x="0" y="0"/>
@@ -56,11 +56,6 @@
                     <Anchor point="LEFT" relativeKey="$parent.tab1" relativePoint="RIGHT" x="-16" y="0"/>
                 </Anchors>
             </Button>
-            <Button name="$parentTab3" parentKey="tab3" parentArray="tabs" inherits="CharacterFrameTabButtonTemplate" id="3">
-                <Anchors>
-                    <Anchor point="LEFT" relativeKey="$parent.tab2" relativePoint="RIGHT" x="-16" y="0"/>
-                </Anchors>
-            </Button>
 
             <Frame parentKey="home" parentArray="containers" hidden="false">
 
@@ -79,7 +74,7 @@
                     </Button>
 
                     <Frame parentKey="censusHistory" inherits="ClassicEraCensusListviewTemplate">
-                        <Size x="160"/>
+                        <Size x="200"/>
                         <Anchors>
                             <Anchor point="TOPLEFT" x="0" y="-50"/>
                             <Anchor point="BOTTOMLEFT" x="0" y="0"/>
@@ -89,8 +84,8 @@
                             <KeyValue key="elementHeight" value="16" type="number"/>
                         </KeyValues>
                     </Frame>
-                    <Frame parentKey="censusHistoryHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_RightArrow" hidden="false">
-                        <Size x="200" y="90"/>
+                    <Frame parentKey="censusHistoryHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_RightArrow" hidden="true">
+                        <Size x="220" y="150"/>
                         <Anchors>
                             <Anchor point="RIGHT" relativePoint="LEFT" x="-10" y="10"/>
                         </Anchors>
@@ -109,10 +104,10 @@
                             <Anchor point="TOPLEFT" relativeKey="$parent.races" relativePoint="TOPRIGHT" x="2" y="0"/>
                         </Anchors>
                     </Frame>
-                    <Frame parentKey="classesHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_BottomArrow" hidden="false">
+                    <Frame parentKey="classesHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_BottomArrow" hidden="true">
                         <Size x="160" y="60"/>
                         <Anchors>
-                            <Anchor point="BOTTOM" relativeKey="$parent.classes" relativePoint="TOP" x="0" y="-30"/>
+                            <Anchor point="BOTTOM" relativeKey="$parent.classes" relativePoint="TOP" x="20" y="-100"/>
                         </Anchors>
                     </Frame>
 
@@ -143,19 +138,26 @@
                         </Anchors>
                         <Layers>
                             <Layer level="BACKGROUND">
-                                <Texture atlas="_BattleSlotTitle-Mid">
+                                <Texture atlas="ClassTrial-Timer-Mid">
                                     <Anchors>
-                                        <Anchor point="TOPLEFT" x="-4" y="12"/>
-                                        <Anchor point="BOTTOMRIGHT" x="0" y="-10"/>
+                                        <Anchor point="TOPLEFT" x="-4" y="0"/>
+                                        <Anchor point="BOTTOMRIGHT" x="0" y="0"/>
                                     </Anchors>
                                 </Texture>
                             </Layer>
                             <Layer level="OVERLAY">
                                 <FontString parentKey="censusHistoryHeader" inherits="GameFontNormal" text="Census History">
-                                    <Size x="160" y="26"/>
+                                    <Size x="200" y="24"/>
                                     <Color r="1" g="1" b="1"/>
                                     <Anchors>
                                         <Anchor point="TOPLEFT" x="0" y="0"/>
+                                    </Anchors>
+                                </FontString>
+                                <FontString parentKey="filtersHeader" inherits="GameFontNormal" text="Filters">
+                                    <Size x="200" y="24"/>
+                                    <Color r="1" g="1" b="1"/>
+                                    <Anchors>
+                                        <Anchor point="TOP" x="0" y="0"/>
                                     </Anchors>
                                 </FontString>
                                 <FontString parentKey="guildsHeader" inherits="GameFontNormal" text="Guilds">
@@ -167,16 +169,16 @@
                                 </FontString>
                             </Layer>
                         </Layers>
-
+                        
                         <Frames>
                             <Button parentKey="mergeCensus" inherits="UIPanelButtonTemplate" text="Merge">
-                                <Size x="80" y="22"/>
+                                <Size x="100" y="22"/>
                                 <Anchors>
                                     <Anchor point="BOTTOMLEFT" x="0" y="6"/>
                                 </Anchors>
                             </Button>
                             <Button parentKey="deleteCensus" inherits="UIPanelButtonTemplate" text="Delete">
-                                <Size x="80" y="22"/>
+                                <Size x="100" y="22"/>
                                 <Anchors>
                                     <Anchor point="LEFT" relativeKey="$parent.mergeCensus" relativePoint="RIGHT" x="4" y="0"/>
                                 </Anchors>
@@ -205,6 +207,12 @@
                         </Frames>
                     </Frame>
 
+                    <Frame parentKey="levelSliderHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_BottomArrow" hidden="true">
+                        <Size x="160" y="60"/>
+                        <Anchors>
+                            <Anchor point="BOTTOM" relativeKey="$parent.ribbon" relativePoint="TOP" x="-60" y="10"/>
+                        </Anchors>
+                    </Frame>
                 </Frames>
 
                 <Layers>
@@ -213,7 +221,7 @@
                             <Size x="340" y="36"/>
                             <Color r="1" g="1" b="1"/>
                             <Anchors>
-                                <Anchor point="TOP" x="0" y="20"/>
+                                <Anchor point="BOTTOM" relativePoint="TOP" x="0" y="4"/>
                             </Anchors>
                         </FontString>
                     </Layer>
@@ -228,27 +236,6 @@
 
                 <Frames>
 
-                </Frames>
-            </Frame>
-
-            <Frame parentKey="database" parentArray="containers" hidden="true">
-
-                <Anchors>
-                    <Anchor point="TOPLEFT" x="6" y="-60"/>
-                    <Anchor point="BOTTOMRIGHT" x="-6" y="6"/>
-                </Anchors>
-
-                <Frames>
-                    <Frame parentKey="results" inherits="ClassicEraCensusListviewTemplate">
-                        <Anchors>
-                            <Anchor point="TOPLEFT" x="0" y="0"/>
-                            <Anchor point="BOTTOMRIGHT" x="0" y="0"/>
-                        </Anchors>
-                        <KeyValues>
-                            <KeyValue key="itemTemplate" value="ClassicEraCensusSearchResultsListviewItemTemplate" type="string"/>
-                            <KeyValue key="elementHeight" value="16" type="number"/>
-                        </KeyValues>
-                    </Frame>
                 </Frames>
             </Frame>
 
