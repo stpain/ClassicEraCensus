@@ -2,6 +2,11 @@
 
 local name, addon = ...;
 
+local configDefaults = {
+    ["minimapButton"] = {},
+    ["region"] = "EU",
+}
+
 local Database = {};
 
 function Database:Init()
@@ -16,6 +21,12 @@ function Database:Init()
     end
 
     self.db = ClassicEraCensus_Account;
+
+    for conf, val in pairs(configDefaults) do
+        if not self.db.config[conf] then
+            self.db.config[conf] = val;
+        end
+    end
 
     addon:TriggerEvent("Database_OnInitialised")
     
@@ -37,6 +48,7 @@ function Database:SetConfig(key, val)
     if self.db and self.db.config then
         self.db.config[key] = val;
     end
+    addon:TriggerEvent("Database_OnConfigChanged", key, val)
 end
 
 function Database:GetConfig(key)

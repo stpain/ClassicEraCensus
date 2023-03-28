@@ -6,6 +6,7 @@ Mixin(addon, CallbackRegistryMixin)
 addon:GenerateCallbackEvents({
     "Database_OnInitialised",
     "Database_OnCensusTableChanged",
+    "Database_OnConfigChanged",
 
     "Database_OnMergeConfirmed",
 

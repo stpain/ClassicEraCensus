@@ -4,11 +4,13 @@ local addonName, ClassicEraCensus = ...;
 
 local Database = ClassicEraCensus.db;
 
+
+
 local L = {
     TABS_SCAN = "Scan", 
-    TABS_DATABASE = "Database",
+    TABS_CENSUS_LOG = "Log",
     TABS_CENSUS = "Census",
-
+    SELECT_REGION = " - Region:",
     HOME_IS_QUICK_CENSUS_LABEL = "Quick Scan",
 
     HOME_CENSUS_HISTORY_HELPTIP = [[
@@ -144,9 +146,11 @@ ClassicEraCensusMixin = {
         charactersSeen = {},
     },
     isCensusInProgress = false,
+    censusProgress = 0,
     censusStartTime = time(),
     selectedCensus = {},
     censusGroup = {},
+    regions = {"EU", "NA", "KR", "TW", "Other"},
 };
 
 function ClassicEraCensusMixin:OnLoad()
@@ -156,6 +160,7 @@ function ClassicEraCensusMixin:OnLoad()
     ClassicEraCensus:RegisterCallback("Census_OnSelectionChanged", self.Census_OnSelectionChanged, self)
     ClassicEraCensus:RegisterCallback("Census_OnMultiSelectChanged", self.Census_OnMultiSelectChanged, self)
     ClassicEraCensus:RegisterCallback("Census_OnGuildSelectionChanged", self.Census_OnGuildSelectionChanged, self)
+    ClassicEraCensus:RegisterCallback("Database_OnConfigChanged", self.Database_OnConfigChanged, self)
 
     self:RegisterForDrag("LeftButton")
 
@@ -163,11 +168,13 @@ function ClassicEraCensusMixin:OnLoad()
 
     SetPortraitToTexture(_G[self:GetName().."Portrait"], 134939)
 
-    _G[self:GetName().."TitleText"]:SetText(addonName)
+    _G[self:GetName().."TitleText"]:SetText(addonName..L.SELECT_REGION)
+    _G[self:GetName().."TitleText"]:SetJustifyH("LEFT")
 
     self.numTabs = #self.tabs
     self.tab1:SetText(HOME)
     self.tab2:SetText(OPTIONS)
+    self.tab3:SetText(L.TABS_CENSUS_LOG)
 
     PanelTemplates_SetNumTabs(self, self.numTabs);
     PanelTemplates_SetTab(self, 1);
@@ -219,7 +226,10 @@ end
 
 function ClassicEraCensusMixin:OnUpdate()
     if self.isCensusInProgress then
-        self.home.censusInfoText:SetText(string.format("Scan time: %s Returned %d characters, processed %d of %d queries", SecondsToClock(time() - self.currentCensus.timestamp), #self.currentCensus.characters, self.currentQueryIndex - 1, #self.queries))
+        self.censusProgress = (self.currentQueryIndex / #self.queries) * 100
+        self.scanProgress:SetValue(self.censusProgress)
+        self.scanProgress.text:SetText(string.format("%.1f", self.censusProgress))
+        self.home.censusInfoText:SetText(string.format("Scan time: %s Returned %d characters, processed %d of %d queries", SecondsToClock(time() - self.currentCensus.timestamp), #self.currentCensus.characters, self.currentQueryIndex, #self.queries))
     end
 end
 
@@ -232,6 +242,12 @@ function ClassicEraCensusMixin:OnEvent(event, ...)
     if event == "WHO_LIST_UPDATE" then
         self:WhoList_OnUpdate()
     end
+end
+
+function ClassicEraCensusMixin:AddLogMessage(msg)
+    self.log.listview.DataProvider:Insert({
+        message = msg,
+    })
 end
 
 function ClassicEraCensusMixin:Database_OnInitialised()
@@ -265,6 +281,22 @@ function ClassicEraCensusMixin:Database_OnInitialised()
 
 end
 
+
+local configCallbacks = {
+    region = function(ui, val)
+        for k, region in ipairs(ui.regions) do
+            if region ~= val then
+                ui["regionCheckbox"..region]:SetChecked(false)
+            end
+        end
+    end,
+}
+function ClassicEraCensusMixin:Database_OnConfigChanged(config, val)
+    if configCallbacks[config] then
+        configCallbacks[config](self, val)
+    end    
+end
+
 function ClassicEraCensusMixin:SetupHomeTab()
 
     local sliders = {
@@ -288,6 +320,20 @@ function ClassicEraCensusMixin:SetupHomeTab()
             s.value:SetText(math.ceil(s:GetValue()))
             self:CensusLevelRange_OnChanged()
         end)
+    end
+
+    local reg = Database:GetConfig("region")
+    for k, region in ipairs(self.regions) do
+        self["regionCheckbox"..region]:SetScript("OnClick", function()
+            Database:SetConfig("region", region)
+        end)
+
+        self["regionCheckbox"..region].label:SetText(region)
+
+        if reg == region then
+            self["regionCheckbox"..region]:SetChecked(true)
+        end
+
     end
 
     self.home.ribbon.clearCensus:SetScript("OnClick", function()
@@ -374,7 +420,7 @@ function ClassicEraCensusMixin:SetupHomeTab()
         self.home.levels.bars[level] = bar;
     end
 
-    self.home.startScan:SetScript("OnClick", function()
+    self.startScan:SetScript("OnClick", function()
         self:Census_Start()
     end)
 
@@ -395,21 +441,26 @@ function ClassicEraCensusMixin:CensusLevelRange_OnChanged()
         self.home.levels.bars[i]:Hide()
     end
 
-    local j = 1
-    for i = minLevel, maxLevel do
-        self.home.levels.bars[i]:ClearAllPoints()
-        self.home.levels.bars[i]:SetPoint("BOTTOMLEFT", 2 + ((j-1) * (barWidth)), 1)
-        self.home.levels.bars[i]:SetWidthHeight(barWidth, levelParentHeight - 5)
-        self.home.levels.bars[i]:SetNoIcon()
-        self.home.levels.bars[i]:Show()
-        j = j + 1
-    end
+    if minLevel <= maxLevel then
+        local j = 1
+        for i = minLevel, maxLevel do
+            self.home.levels.bars[i]:ClearAllPoints()
+            self.home.levels.bars[i]:SetPoint("BOTTOMLEFT", 2 + ((j-1) * (barWidth)), 1)
+            self.home.levels.bars[i]:SetWidthHeight(barWidth, levelParentHeight - 5)
+            self.home.levels.bars[i]:SetNoIcon()
+            self.home.levels.bars[i]:Show()
+            j = j + 1
+        end
 
-    self:FilterCensus(self.censusGroup)
+        self:FilterCensus(self.censusGroup)
+    end
 
 end
 
 function ClassicEraCensusMixin:Database_OnCensusTableChanged()
+
+    self:ClearAllFilters()
+    self:ResetHomeCharts()
     
     local allCensus = Database:FetchAllCensus()
 
@@ -439,34 +490,39 @@ function ClassicEraCensusMixin:Census_OnGuildSelectionChanged(guild)
 end
 
 function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
-    
-    local exists, key = false, nil
-    local realmCheck, factionCheck = true, true
-    for k, v in ipairs(self.censusGroup) do
-        if (v.author == census.author) and (v.timestamp == census.timestamp) then
-            exists = true;
-            key = k
-        end
-        if census.realm ~= v.realm then
-            realmCheck = false
-        end
-        if census.faction ~= v.faction then
-            factionCheck = false;
-        end
-    end
-    if realmCheck == false then
-        print("Census is from a different realm!")
-        return;
-    end
-    if factionCheck == false then
-        print("Census is from a different faction!")
-        return;
-    end
-    if census.selected == true and exists == false then
+
+    if #self.censusGroup == 0 then
         table.insert(self.censusGroup, census)
-    end
-    if  (not census.selected) and key ~= nil then
-        table.remove(self.censusGroup, key)
+    else
+        local exists, key = false, nil
+        local realmCheck, factionCheck = true, true
+        for k, v in ipairs(self.censusGroup) do
+            --print(k, v.realm, v.timestamp)
+            if (v.author == census.author) and (v.timestamp == census.timestamp) then
+                exists = true;
+                key = k
+            end
+            if census.realm ~= v.realm then
+                realmCheck = false
+            end
+            if census.faction ~= v.faction then
+                factionCheck = false;
+            end
+        end
+        if realmCheck == false then
+            print("Census is from a different realm!")
+            return;
+        end
+        if factionCheck == false then
+            print("Census is from a different faction!")
+            return;
+        end
+        if census.selected == true and exists == false then
+            table.insert(self.censusGroup, census)
+        end
+        if  (not census.selected) and key ~= nil then
+            table.remove(self.censusGroup, key)
+        end
     end
 
     self:LoadCensusGroup(self.censusGroup)
@@ -488,18 +544,19 @@ function ClassicEraCensusMixin:Census_Start()
     end
 
     local faction = UnitFactionGroup("player")
+    local region = Database:GetConfig("region")
 
     self.currentCensus = {
         timestamp = time(),
         author = string.format("%s-%s", name, realm),
         realm = realm,
-        --region = "",
+        region = region or "Other",
         faction = faction,
         characters = {},
         charactersSeen = {},
     };
     self.currentQueryIndex = 1;
-    self:GenerateQueries();
+    self:GenerateBasicQueries();
     self.isCensusInProgress = true;
 
 end
@@ -554,7 +611,8 @@ function ClassicEraCensusMixin:FilterCensusForGuild(guild)
 
     local t = {
         characters = {},
-        faction = self.censusGroup[1].faction
+        faction = self.censusGroup[1].faction,
+        realm = self.censusGroup[1].realm,
     }
     for _, census in ipairs(self.censusGroup) do
         for k, character in ipairs(census.characters) do
@@ -827,7 +885,7 @@ function ClassicEraCensusMixin:WhoList_OnUpdate()
     local numResults = C_FriendList.GetNumWhoResults()
     local query = self.queries[self.currentQueryIndex]
 
-    print(string.format("processing query [%s] with %d results", query.who, numResults))
+    self:AddLogMessage(string.format("processing query [%s] with %d results", query.who, numResults))
 
     --to many results for this race/class combo
     if numResults > 49 then
@@ -905,8 +963,6 @@ function ClassicEraCensusMixin:WhoList_OnUpdate()
         self:ParseWhoResults(numResults)
     end
 
-    self:UpdateQueryQueue()
-
     --print(string.format("|cffBF9000>>>>>> who returned %s players for %s %s (level %d) <<<<<<|r", numResults, query.race, query.class, query.level or 0))
 
     FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
@@ -916,7 +972,23 @@ function ClassicEraCensusMixin:WhoList_OnUpdate()
 end
 
 
-function ClassicEraCensusMixin:GenerateQueries()
+function ClassicEraCensusMixin:GenerateBasicQueries()
+
+    self.queries = {};
+
+    for race, classes in pairs(factions[self.faction]) do
+        for _, class in ipairs(classes) do
+            table.insert(self.queries, {
+                who = string.format([[r-"%s" c-"%s"]], race, class),
+                race = race,
+                class = class,
+            })
+        end
+    end
+end
+
+
+function ClassicEraCensusMixin:GenerateClassQueries(class)
 
     self.queries = {};
 
@@ -1013,7 +1085,7 @@ function ClassicEraCensusMixin:DispatchWhoQuery()
                 C_FriendList.SetWhoToUi(true)
                 self:RegisterEvent("WHO_LIST_UPDATE")
 
-                print(self.queries[self.currentQueryIndex].who)
+                self:AddLogMessage(self.queries[self.currentQueryIndex].who)
                 C_FriendList.SendWho(self.queries[self.currentQueryIndex].who)
 
                 self.previousWhoQueryTime = time() + self.whoQueryStagger;

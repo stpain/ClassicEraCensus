@@ -119,6 +119,15 @@ function ClassicEraCensusBasicListviewItemMixin:SetText(text, height)
 end
 
 
+ClassicEraCensusLogListviewItemMixin = {}
+function ClassicEraCensusLogListviewItemMixin:SetDataBinding(binding, height)
+    self:SetHeight(height)
+    self.text:SetText(binding.message)
+end
+function ClassicEraCensusLogListviewItemMixin:ResetDataBinding()
+    
+end
+
 ClassicEraCensusCensusHistoryListviewItemMixin = {}
 
 function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, height)

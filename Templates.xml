@@ -68,6 +68,10 @@
 
     </Frame>
 
+    <Frame name="ClassicEraCensusLogListviewItemTemplate" mixin="ClassicEraCensusLogListviewItemMixin" inherits="ClassicEraCensusBasicListviewItemTemplate" virtual="true">
+
+    </Frame>
+
 
     <Frame name="ClassicEraCensusBarChartBarTemplate" mixin="ClassicEraCensusBarChartBarMixin" virtual="true">
         <Layers>
