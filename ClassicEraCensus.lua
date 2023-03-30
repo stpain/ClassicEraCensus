@@ -3,8 +3,9 @@
 local addonName, ClassicEraCensus = ...;
 
 local Database = ClassicEraCensus.db;
+local Census = ClassicEraCensus.Census;
 
-
+local EXPANSION = "classic"
 
 local L = {
     TABS_SCAN = "Scan", 
@@ -12,7 +13,7 @@ local L = {
     TABS_CENSUS = "Census",
     SELECT_REGION = " - Region:",
     HOME_IS_QUICK_CENSUS_LABEL = "Quick Scan",
-
+    HOME_GUILDS_HELPTIP = "Guilds are orderd by the total XP of all members",
     HOME_CENSUS_HISTORY_HELPTIP = [[
 Census records are listed here.
 
@@ -26,10 +27,8 @@ You can merge or delete selected
 records.
 ]],
     HOME_CLASSES_HELPTIP = "You can select different parts on the charts to filter the results.",
-    HOME_FILTERS_HELPTIP = "Adjust the level range and race/class filters to view data."
+    HOME_FILTERS_HELPTIP = "Adjust the level range and race/class filters to view data.\n\nIf no results show try selecting all races."
 }
-
-local alphabet = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", }
 
 local MAX_LEVEL = 60;
 
@@ -70,67 +69,6 @@ local classesOrdered = {
     },
 }
 
-local factions = {
-    alliance = {
-        human = {
-            "mage",
-            "warrior",
-            "paladin",
-            "rogue",
-            "warlock",
-            "priest",
-        },
-        dwarf = {
-            "warrior",
-            "paladin",
-            "rogue",
-            "hunter",
-            "priest",
-        },
-        ["night elf"] = {
-            "warrior",
-            "rogue",
-            "priest",
-            "hunter",
-            "druid",
-        },
-        gnome = {
-            "mage",
-            "warrior",
-            "rogue",
-            "warlock"
-        }
-    },
-    horde = {
-        orc = {
-            "warrior",
-            "shaman",
-            "rogue",
-            "warlock",
-            "hunter",
-        },
-        troll = {
-            "warrior",
-            "shaman",
-            "rogue",
-            "hunter",
-            "priest",
-        },
-        tauren = {
-            "warrior",
-            "hunter",
-            "druid",
-            "shaman",
-        },
-        scourge = {
-            "mage",
-            "warrior",
-            "rogue",
-            "warlock",
-            "priest",
-        },
-    },
-}
 
 ClassicEraCensusMixin = {
     previousWhoQueryTime = -999,
@@ -160,6 +98,7 @@ function ClassicEraCensusMixin:OnLoad()
     ClassicEraCensus:RegisterCallback("Census_OnSelectionChanged", self.Census_OnSelectionChanged, self)
     ClassicEraCensus:RegisterCallback("Census_OnMultiSelectChanged", self.Census_OnMultiSelectChanged, self)
     ClassicEraCensus:RegisterCallback("Census_OnGuildSelectionChanged", self.Census_OnGuildSelectionChanged, self)
+    ClassicEraCensus:RegisterCallback("Census_OnFinished", self.Census_OnFinished, self)
     ClassicEraCensus:RegisterCallback("Database_OnConfigChanged", self.Database_OnConfigChanged, self)
 
     self:RegisterForDrag("LeftButton")
@@ -194,10 +133,6 @@ function ClassicEraCensusMixin:OnLoad()
 
     end)
 
-    -- self.database:SetScript("OnShow", function()
-    --     self:UpdateQueryQueue()
-    -- end)
-
     hooksecurefunc("SetItemRef", function(link)
         local linkRef, addon = strsplit("?", link)
         if (linkRef == "garrmission") and (addon == addonName) then
@@ -211,7 +146,12 @@ function ClassicEraCensusMixin:OnLoad()
     }
     for _, hook in ipairs(hooks) do
         WorldFrame:HookScript(hook, function()
-            self:DispatchWhoQuery()
+            if self.isCensusInProgress then
+                self.currentCensus:AttemptNextWhoQuery()
+                FriendsFrame:UnregisterEvent("WHO_LIST_UPDATE")
+                C_FriendList.SetWhoToUi(true)
+                self:RegisterEvent("WHO_LIST_UPDATE")
+            end
         end)
     end
 
@@ -226,10 +166,10 @@ end
 
 function ClassicEraCensusMixin:OnUpdate()
     if self.isCensusInProgress then
-        self.censusProgress = (self.currentQueryIndex / #self.queries) * 100
-        self.scanProgress:SetValue(self.censusProgress)
-        self.scanProgress.text:SetText(string.format("%.1f", self.censusProgress))
-        self.home.censusInfoText:SetText(string.format("Scan time: %s Returned %d characters, processed %d of %d queries", SecondsToClock(time() - self.currentCensus.timestamp), #self.currentCensus.characters, self.currentQueryIndex, #self.queries))
+        -- self.censusProgress = (self.currentQueryIndex / #self.queries) * 100
+        -- self.scanProgress:SetValue(self.censusProgress)
+        -- self.scanProgress.text:SetText(string.format("%.1f", self.censusProgress))
+        --self.home.censusInfoText:SetText(string.format("Scan time: %s Returned %d characters, processed %d of %d queries", SecondsToClock(time() - self.currentCensus.timestamp), #self.currentCensus.characters, self.currentQueryIndex, #self.queries))
     end
 end
 
@@ -248,20 +188,28 @@ function ClassicEraCensusMixin:AddLogMessage(msg)
     self.log.listview.DataProvider:Insert({
         message = msg,
     })
+    self.log.listview.scrollBox:ScrollToEnd()
 end
 
 function ClassicEraCensusMixin:Database_OnInitialised()
+
+    local addon = self;
     
     local ldb = LibStub("LibDataBroker-1.1")
     local minimapDataBroker = ldb:NewDataObject(addonName, {
         type = "launcher",
         icon = 134939,
         OnClick = function(_, button)
+            print(button)
             self:SetShown(not self:IsVisible())
         end,
-        OnEnter = function(self)
+        OnEnter = function(addon)
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")
             GameTooltip:AddLine(addonName)
+            if addon.isCensusInProgress then
+                GameTooltip:AddLine("Census progress")
+                GameTooltip_ShowProgressBar(GameTooltip, 1, 100, addon.censusProgress)
+            end
             GameTooltip:Show()
         end,
         OnLeave = function()
@@ -278,6 +226,8 @@ function ClassicEraCensusMixin:Database_OnInitialised()
     self:SetupHomeTab()
 
     self:Database_OnCensusTableChanged()
+
+    self.realmLabel:SetText(GetNormalizedRealmName())
 
 end
 
@@ -353,6 +303,7 @@ function ClassicEraCensusMixin:SetupHomeTab()
     self.home.censusHistoryHelptip:SetText(L.HOME_CENSUS_HISTORY_HELPTIP:format(CreateAtlasMarkup("poi-workorders", 16, 16)))
     self.home.classesHelptip:SetText(L.HOME_CLASSES_HELPTIP)
     self.home.levelSliderHelptip:SetText(L.HOME_FILTERS_HELPTIP)
+    self.home.guildHelptip:SetText(L.HOME_GUILDS_HELPTIP)
 
     self.home.races.bars = {}
     self.home.classes.bars = {}
@@ -423,6 +374,9 @@ function ClassicEraCensusMixin:SetupHomeTab()
     self.startScan:SetScript("OnClick", function()
         self:Census_Start()
     end)
+
+    self.home.ribbon.minLevel:SetValue(1)
+    self.home.ribbon.maxLevel:SetValue(60)
 
 end
 
@@ -527,10 +481,20 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
 
     self:LoadCensusGroup(self.censusGroup)
 
+    local censusGroupCharactersSeen, count = {}, 0
+    for _, census in ipairs(self.censusGroup) do
+        for k, character in ipairs(census.characters) do
+            if not censusGroupCharactersSeen[character.name]then
+                count = count + 1;
+                censusGroupCharactersSeen[character.name] = true
+            end
+        end
+    end
+
     if #self.censusGroup == 0 then
         self.home.censusInfoText:SetText("No census selected")
     else
-        self.home.censusInfoText:SetText(string.format("Selected %d, %d characters", #self.censusGroup, #census.characters))
+        self.home.censusInfoText:SetText(string.format("Selected %d, %d unique characters", #self.censusGroup, count))
     end
 
 end
@@ -546,20 +510,28 @@ function ClassicEraCensusMixin:Census_Start()
     local faction = UnitFactionGroup("player")
     local region = Database:GetConfig("region")
 
-    self.currentCensus = {
-        timestamp = time(),
-        author = string.format("%s-%s", name, realm),
-        realm = realm,
-        region = region or "Other",
-        faction = faction,
-        characters = {},
-        charactersSeen = {},
-    };
-    self.currentQueryIndex = 1;
-    self:GenerateBasicQueries();
+    self.currentCensus = Census:New(name, realm, faction, region)
+
     self.isCensusInProgress = true;
 
 end
+
+function ClassicEraCensusMixin:Census_Pause()
+    self.isCensusInProgress = not self.isCensusInProgress;
+end
+
+function ClassicEraCensusMixin:Census_Stop()
+    
+end
+
+function ClassicEraCensusMixin:Census_OnFinished()
+    self.isCensusInProgress = false;
+    
+    local census = self.currentCensus:CreateRecord()
+    self.currentCensus = census;
+    --Database:InsertCensus(self.currentCensus)
+end
+
 
 function ClassicEraCensusMixin:ResetHomeCharts()
     for _, chart in pairs({"races", "classes", "levels"}) do
@@ -776,6 +748,18 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
 
 end
 
+
+function ClassicEraCensusMixin:GetCharactersTotalXP(currentLevel)
+
+    local xp = 0;
+    if type(currentLevel) == "number" then
+        for i = 1, (currentLevel - 1) do
+            xp = xp + ClassicEraCensus.levelXpValues[EXPANSION][i]
+        end
+    end
+    return xp;
+end
+
 function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
 
     self:ResetHomeCharts()
@@ -831,11 +815,13 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
                         table.insert(guilds, {
                             name = character.guild,
                             count = 1,
+                            xp = self:GetCharactersTotalXP(character.level)
                         })
                     else
                         for k, guild in ipairs(guilds) do
                             if guild.name == character.guild then
                                 guild.count = guild.count + 1;
+                                guild.xp = guild.xp + self:GetCharactersTotalXP(character.level)
                             end
                         end
                     end
@@ -864,248 +850,45 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
 
     self.home.guilds.DataProvider:Flush()
     table.sort(guilds, function(a, b)
-        if a.count == b.count then
-            return a.name < b.name
+        if a.xp == b.xp then
+            if a.count == b.count then
+                return a.name <b.name
+            else
+                return a.count < b.count
+            end
         else
-            return a.count > b.count
+            return a.xp > b.xp
         end
     end)
     self.home.guilds.DataProvider:InsertTable(guilds)
 
-    -- if self.home.guilds.selectedGuild then
-    --     self.home.censusInfoText:SetText(string.format("Guild %s > %d characters", self.home.guilds.selectedGuild, characterCount))
-    -- else
-    --     self.home.censusInfoText:SetText(string.format("%d census > %d characters", #self.censusGroup, characterCount))
-    -- end
-
 end
+
 
 function ClassicEraCensusMixin:WhoList_OnUpdate()
 
     local numResults = C_FriendList.GetNumWhoResults()
-    local query = self.queries[self.currentQueryIndex]
-
-    self:AddLogMessage(string.format("processing query [%s] with %d results", query.who, numResults))
 
     --to many results for this race/class combo
     if numResults > 49 then
-
-        table.remove(self.queries, self.currentQueryIndex)
-
-        --print("to many characters, lets add per level searches")
-        
-        --make a batch of jobs to who per level
-        if not query.level then
-            local index = self.currentQueryIndex;
-            
-            --inject the level queries after current job
-            for level = 1, 60 do
-                table.insert(self.queries, index,{
-                    who = string.format([[r-"%s" c-"%s" %d-%d]], query.race, query.class, level, level),
-                    race = query.race,
-                    class = query.class,
-                    level = level,
-                })
-                --print(string.format("added %s to queue", string.format([[r-"%s" c-"%s" %d-%d]], query.race, query.class, level, level)))
-                index = index + 1;
-            end
-
-
-
-            --remove current job
-            --table.remove(self.queries, 1)
-
-        --tried to query per level so go to names
-        else
-
-            --inject query for a single letter - WILL NEED TO SORT LOCALES for non english alphabets 
-            if not query.name then
-                
-                local index = self.currentQueryIndex;
-
-                for _, letter in ipairs(alphabet) do
-                    table.insert(self.queries, index, {
-                        who = string.format([[r-"%s" c-"%s" n-"%s" %d-%d]], query.race, query.class, letter, query.level, query.level),
-                        race = query.race,
-                        class = query.class,
-                        level = query.level,
-                        name = letter,
-                    })
-                    index = index + 1;
-                end
-
-            else
-
-                --if the single letter returned to many results, inject queries for 2 letters aa, ab, ac, ad ...
-                if query.name and #query.name == 1 then
-
-                    local index = self.currentQueryIndex;
-
-                    for _, letter in ipairs(alphabet) do
-                        table.insert(self.queries, index, {
-                            who = string.format([[r-"%s" c-"%s" n-"%s%s" %d-%d]], query.race, query.class, query.name, letter, query.level, query.level),
-                            race = query.race,
-                            class = query.class,
-                            level = query.level,
-                            name = (query.name..letter),
-                        })
-                        index = index + 1;
-                    end
-                    
-                end
-
-            end
-
-
-        end
+        self.currentCensus:RefineWhoParams()
 
     else
-        self:ParseWhoResults(numResults)
-    end
+        self.currentCensus:ProcessWhoResults()
 
-    --print(string.format("|cffBF9000>>>>>> who returned %s players for %s %s (level %d) <<<<<<|r", numResults, query.race, query.class, query.level or 0))
+    end
 
     FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
     C_FriendList.SetWhoToUi(false)
     self:UnregisterEvent("WHO_LIST_UPDATE")
 
-end
-
-
-function ClassicEraCensusMixin:GenerateBasicQueries()
-
-    self.queries = {};
-
-    for race, classes in pairs(factions[self.faction]) do
-        for _, class in ipairs(classes) do
-            table.insert(self.queries, {
-                who = string.format([[r-"%s" c-"%s"]], race, class),
-                race = race,
-                class = class,
-            })
-        end
-    end
-end
-
-
-function ClassicEraCensusMixin:GenerateClassQueries(class)
-
-    self.queries = {};
-
-    for race, classes in pairs(factions[self.faction]) do
-        for _, class in ipairs(classes) do
-            table.insert(self.queries, {
-                who = string.format([[r-"%s" c-"%s"]], race, class),
-                race = race,
-                class = class,
-            })
-        end
-    end
-end
-
-function ClassicEraCensusMixin:ParseWhoResults(numResults)
-
-    for i = 1, numResults do
-        local character = C_FriendList.GetWhoInfo(i)
-
-        --update the name to name-realm format using current player realm info
-        if not character.fullName:find("-") then
-            local _, realm = UnitFullName("player");
-            if realm == nil or realm == "" then
-                realm = GetNormalizedRealmName();
-            end
-            character.fullName = string.format("%s-%s", character.fullName, realm);
-
-            --DevTools_Dump({character})
-        end
-
-        if character.fullGuildName == "" then
-            character.fullGuildName = ">< No Guild ><"
-        end
-
-        if type(self.currentCensus) == "table" then
-
-            if not self.currentCensus.charactersSeen[character.fullName] then
-                table.insert(self.currentCensus.characters, {
-                    race = character.raceStr,
-                    class = character.filename,
-                    guild = character.fullGuildName,
-                    gender = character.gender == 2 and "male" or "female",
-                    level = character.level,
-                    name = character.fullName,
-                })
-                self.currentCensus.charactersSeen[character.fullName] = true;
-
-            else
-                for k, v in ipairs(self.currentCensus.characters) do
-                    if (v.fullName == character.fullName) then
-                        v = {
-                            race = character.raceStr,
-                            class = character.filename,
-                            guild = character.fullGuildName or " - ",
-                            gender = character.gender == 2 and "male" or "female",
-                            level = character.level,
-                            name = character.fullName,
-                        }
-                    end
-                end
-            end
-
-        end
-    end
-
-    self.currentQueryIndex = self.currentQueryIndex + 1;
-
-    self:UpdateQueryQueue()
     self:LoadCensusGroup()
 
-    if self.currentQueryIndex > #self.queries then
-        self:Census_Finished()
-    end
-
 end
 
-
-function ClassicEraCensusMixin:Census_Finished()
-    self.isCensusInProgress = false;
-    self.currentCensus.charactersSeen = nil;
-    Database:InsertCensus(self.currentCensus)
-end
-
-
-function ClassicEraCensusMixin:DispatchWhoQuery()
-
-    if self.isCensusInProgress == true then
-
-        if self.queries and self.queries[self.currentQueryIndex] then
-            
-            if time() > self.previousWhoQueryTime then
-
-                FriendsFrame:UnregisterEvent("WHO_LIST_UPDATE")
-                C_FriendList.SetWhoToUi(true)
-                self:RegisterEvent("WHO_LIST_UPDATE")
-
-                self:AddLogMessage(self.queries[self.currentQueryIndex].who)
-                C_FriendList.SendWho(self.queries[self.currentQueryIndex].who)
-
-                self.previousWhoQueryTime = time() + self.whoQueryStagger;
-
-            end
-
-        end
-
-    end
-
-end
 
 function ClassicEraCensusMixin:LoadOptionsInterface()
 
-end
-
-function ClassicEraCensusMixin:UpdateQueryQueue()
-
-    -- self.database.results.DataProvider:Flush()
-    -- self.database.results.DataProvider:InsertTable(self.queries)
 end
 
 

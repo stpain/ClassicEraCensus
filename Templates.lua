@@ -195,7 +195,7 @@ end
 ClassicEraCensusHomeTabGuildsListviewItemMixin = {}
 function ClassicEraCensusHomeTabGuildsListviewItemMixin:SetDataBinding(binding, height)
     self:SetHeight(height)
-    self.text:SetText(string.format("[%d] %s", binding.count, binding.name))
+    self.text:SetText(string.format("%s\n%d members", binding.name, binding.count))
 
     self:SetScript("OnMouseDown", function()
         addon:TriggerEvent("Census_OnGuildSelectionChanged", binding.name)

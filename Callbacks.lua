@@ -13,5 +13,8 @@ addon:GenerateCallbackEvents({
     "Census_OnSelectionChanged",
     "Census_OnMultiSelectChanged",
     "Census_OnGuildSelectionChanged",
+
+    "Census_OnFinished",
+
 })
 CallbackRegistryMixin.OnLoad(addon);

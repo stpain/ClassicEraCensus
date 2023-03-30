@@ -53,14 +53,12 @@
                 </Anchors>
             </Button>
 
-            <StatusBar parentKey="scanProgress" useParentLevel="true" minValue="0" maxValue="100" defaultValue="100" orientation="HORIZONTAL">
+            <!-- <StatusBar parentKey="scanProgress" useParentLevel="true" minValue="0" maxValue="100" defaultValue="100" orientation="HORIZONTAL">
                 <Size x="100" y="10"/>
                 <Anchors>
                     <Anchor point="RIGHT" relativeKey="$parent.startScan" relativePoint="LEFT"  x="-10" y="-1"/>
                 </Anchors>
                 <BarTexture file="Interface\TargetingFrame\UI-StatusBar"/>
-                <!-- <BarTexture atlas="_BattleSlotTitle-BG"/>> -->
-                <!-- <BarTexture atlas="Artifacts-Warlock-Header"/> -->
                 <BarColor r="0.74" g="0.56" b="0.0" a="1"/>
 
                 <Layers>
@@ -75,7 +73,7 @@
                     </Layer>
                 </Layers>
 
-            </StatusBar>
+            </StatusBar> -->
 
             
             <CheckButton parentKey="regionCheckboxEU" inherits="ClassicEraCensusCheckButton">
@@ -188,7 +186,7 @@
                         </Anchors>
                         <KeyValues>
                             <KeyValue key="itemTemplate" value="ClassicEraCensusHomeTabGuildsListviewItemTemplate" type="string"/>
-                            <KeyValue key="elementHeight" value="20" type="number"/>
+                            <KeyValue key="elementHeight" value="32" type="number"/>
                         </KeyValues>
                     </Frame>
 
@@ -270,9 +268,16 @@
                     </Frame>
 
                     <Frame parentKey="levelSliderHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_BottomArrow" hidden="true">
-                        <Size x="160" y="60"/>
+                        <Size x="180" y="90"/>
                         <Anchors>
                             <Anchor point="BOTTOM" relativeKey="$parent.ribbon" relativePoint="TOP" x="-60" y="10"/>
+                        </Anchors>
+                    </Frame>
+
+                    <Frame parentKey="guildHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_BottomArrow" hidden="true">
+                        <Size x="140" y="50"/>
+                        <Anchors>
+                            <Anchor point="BOTTOM" relativeKey="$parent.ribbon" relativePoint="BOTTOMRIGHT" x="-40" y="0"/>
                         </Anchors>
                     </Frame>
                 </Frames>
@@ -298,7 +303,12 @@
                 </Anchors>
 
                 <Frames>
-
+                    <Frame parentKey="censusOptions" inherits="InsetFrameTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="6" y="0"/>
+                            <Anchor point="BOTTOMRIGHT" x="-6" y="6"/>
+                        </Anchors>
+                    </Frame>
                 </Frames>
             </Frame>
 
@@ -324,6 +334,18 @@
             </Frame>
 
         </Frames>
+
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="realmLabel" inherits="GameFontNormal">
+                    <Size y="22"/>
+                    <Color r="1" g="1" b="1"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" relativeKey="$parent.startScan" relativePoint="LEFT" x="-10" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
 
         <Scripts>
             <OnLoad method="OnLoad"/>

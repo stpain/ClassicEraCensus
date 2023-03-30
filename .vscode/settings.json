@@ -31,6 +31,15 @@
         "TRANSMOG_SOURCE_3",
         "FILTERS",
         "MerchantFrame",
-        "StaticPopup1Button1"
+        "StaticPopup1Button1",
+        "SlashCmdList",
+        "CreateScrollBoxListGridView",
+        "UIParentLoadAddOn",
+        "DisplayTableInspectorWindow",
+        "FACTION_STANDING_INCREASED",
+        "HandleModifiedItemClick",
+        "DressUpItemLink",
+        "GameTooltip_ShowStatusBar",
+        "GameTooltip_ShowProgressBar"
     ]
 }

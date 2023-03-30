@@ -17,6 +17,7 @@ function Database:Init()
                 minimapButton = {},
             },
             census = {},
+            temp = {},
         };
     end
 
@@ -26,6 +27,10 @@ function Database:Init()
         if not self.db.config[conf] then
             self.db.config[conf] = val;
         end
+    end
+
+    if not self.db.temp then
+        self.db.temp = {};
     end
 
     addon:TriggerEvent("Database_OnInitialised")
@@ -54,6 +59,20 @@ end
 function Database:GetConfig(key)
     if self.db and self.db.config then
         return self.db.config[key];
+    end
+end
+
+function Database:SaveTempData(key, val)
+    if self.db then
+        self.db.temp[key] = val;
+    end
+end
+
+function Database:GetTempData(dataKey)
+    if self.db then
+        if self.db.temp[dataKey] then
+            return self.db.temp[dataKey]
+        end
     end
 end
 
@@ -106,23 +125,28 @@ function Database:CreateMerge(censusGroup, name)
             merged = census.merged,
         })
         for j, character in ipairs(census.characters) do
-            table.insert(t, character)
+            table.insert(t, {
+                character = character,
+                timestamp = census.timestamp,
+            })
         end
     end
 
-    table.sort(t, function(a, b)
-        if a.name == b.name then
-            return a.level > b.level
-        else
-            return a.name < b.name
-        end
-    end)
-
     local charactersSeen = {}
-    for k, character in ipairs(t) do
-        if not charactersSeen[character.name] then
-            charactersSeen[character.name] = true
-            table.insert(merge.characters, character)
+    for k, v in ipairs(t) do
+        if not charactersSeen[v.character.name] then
+            charactersSeen[v.character.name] = v.timestamp
+            table.insert(merge.characters, v.character)
+
+        else
+
+            if v.timestamp > charactersSeen[v.character.name] then
+                for k, x in ipairs(merge.characters) do
+                    if x.name == v.character.name then
+                        x = v.character;
+                    end
+                end
+            end
         end
     end
 
