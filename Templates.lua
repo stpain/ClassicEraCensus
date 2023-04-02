@@ -119,10 +119,16 @@ function ClassicEraCensusBasicListviewItemMixin:SetText(text, height)
 end
 
 
-ClassicEraCensusLogListviewItemMixin = {}
+ClassicEraCensusLogListviewItemMixin = {
+    types = {
+        warning = "|cffc91A15",
+        info = "|cff3EA958",
+        who = "|cffffd700",
+    }
+}
 function ClassicEraCensusLogListviewItemMixin:SetDataBinding(binding, height)
     self:SetHeight(height)
-    self.text:SetText(binding.message)
+    self.text:SetText(string.format("%s%s", self.types[binding.type], binding.message))
 end
 function ClassicEraCensusLogListviewItemMixin:ResetDataBinding()
     
@@ -150,7 +156,7 @@ function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, 
         self.text:SetTextColor(1,1,1,1)
 
     else
-        if binding.faction == "Alliance" then
+        if binding.faction:lower() == "alliance" then
             self.text:SetText(string.format("%s %s", CreateAtlasMarkup("poi-alliance", 16, 16), date('%Y-%m-%d %H:%M:%S', binding.timestamp)))
             self.text:SetTextColor(21/255, 101/255, 192/255, 1) --21,101,192
         else
@@ -166,17 +172,13 @@ function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, 
 
     self:SetScript("OnMouseDown", function(_, button)
         if button == "LeftButton" then
-            --if IsControlKeyDown() then
-                binding.selected = not binding.selected
-                if binding.selected then
-                    self.background:Show()
-                else
-                    self.background:Hide()
-                end
-                addon:TriggerEvent("Census_OnMultiSelectChanged", binding)
-            -- else
-            --     addon:TriggerEvent("Census_OnSelectionChanged", binding)
-            --end
+            binding.selected = not binding.selected
+            if binding.selected then
+                self.background:Show()
+            else
+                self.background:Hide()
+            end
+            addon:TriggerEvent("Census_OnMultiSelectChanged", binding)
 
         else
 

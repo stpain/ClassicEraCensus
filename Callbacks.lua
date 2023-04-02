@@ -10,11 +10,11 @@ addon:GenerateCallbackEvents({
 
     "Database_OnMergeConfirmed",
 
-    "Census_OnSelectionChanged",
     "Census_OnMultiSelectChanged",
     "Census_OnGuildSelectionChanged",
 
     "Census_OnFinished",
+    "Census_LogMessage",
 
 })
 CallbackRegistryMixin.OnLoad(addon);

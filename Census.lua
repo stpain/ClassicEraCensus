@@ -2,10 +2,12 @@
 
 local name, addon = ...;
 
+local locale = GetLocale()
+
 local Census = {}
 
 Census.factions = {
-    alliance = {
+    Alliance = {
         human = {
             "mage",
             "warrior",
@@ -35,7 +37,7 @@ Census.factions = {
             "warlock"
         }
     },
-    horde = {
+    Horde = {
         orc = {
             "warrior",
             "shaman",
@@ -64,6 +66,91 @@ Census.factions = {
             "priest",
         },
     },
+}
+
+Census.zones = {
+    [[Ahn'Qiraj]],
+    [[Alterac Mountains]],
+    [[Alterac Valley]],
+    [[Arathi Basin]],
+    [[Arathi Highlands]],
+    [[Ashenvale]],
+    [[Azshara]],
+    [[Badlands]],
+    [[Blackfathom Deeps]],
+    [[Blackrock Depths]],
+    [[Blackrock Mountain]],
+    [[Blackrock Spire]],
+    [[Blackwing Lair]],
+    [[Blasted Lands]],
+    [[Burning Steppes]],
+    [[Caverns of Time]],
+    [[Darkshore]],
+    [[Darnassus]],
+    [[Deadwind Pass]],
+    [[Deeprun Tram]],
+    [[Desolace]],
+    [[Dire Maul]],
+    [[Dun Morogh]],
+    [[Durotar]],
+    [[Duskwood]],
+    [[Dustwallow Marsh]],
+    [[Eastern Plaguelands]],
+    [[Elwynn Forest]],
+    [[Emerald Forest]],
+    [[Felwood]],
+    [[Feralas]],
+    [[Gnomeregan]],
+    [[Hillsbrad Foothills]],
+    [[Ironforge]],
+    [[Loch Modan]],
+    [[Maraudon]],
+    [[Molten Core]],
+    [[Moonglade]],
+    [[Mulgore]],
+    [[Naxxramas]],
+    [[Onyxia's Lair]],
+    [[Orgrimmar]],
+    [[Ragefire Chasm]],
+    [[Razorfen Downs]],
+    [[Razorfen Kraul]],
+    [[Redridge Mountains]],
+    [[Ruins of Ahn'Qiraj]],
+    [[Scarlet Monastery]],
+    [[Scholomance]],
+    [[Searing Gorge]],
+    [[Shadowfang Keep]],
+    [[Silithus]],
+    [[Silverpine Forest]],
+    [[Stonetalon Mountains]],
+    [[Stormwind City]],
+    [[Stranglethorn Vale]],
+    [[Stratholme]],
+    [[Sunken Temple]],
+    [[Swamp of Sorrows]],
+    [[Tanaris]],
+    [[Teldrassil]],
+    [[The Barrens]],
+    [[The Deadmines]],
+    [[The Great Sea]],
+    [[The Hinterlands]],
+    [[The Stockade]],
+    [[The Temple of Atal'Hakkar]],
+    [[The Veiled Sea]],
+    [[Thousand Needles]],
+    [[Thunder Bluff]],
+    [[Tirisfal Glades]],
+    [[Uldaman]],
+    [[Un'Goro Crater]],
+    [[Undercity]],
+    [[Wailing Caverns]],
+    [[Warsong Gulch]],
+    [[Western Plaguelands]],
+    [[Westfall]],
+    [[Wetlands]],
+    [[Winterspring]],
+    [[Zul'Farrak]],
+    [[Zul'Gurub]],
 }
 
 Census.levelRanges20 = {
@@ -101,46 +188,51 @@ for i = 1, 60 do
     Census.levelRanges1[i] = string.format("%d-%d", i, i)
 end
 local alphabet = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", }
-Census.nameLetters = {}
+Census.nameLetter1 = {}
+Census.nameLetter2 = {}
 for _, letter1 in ipairs(alphabet) do
+    table.insert(Census.nameLetter1, letter1)
     for _, letter2 in ipairs(alphabet) do
-        table.insert(Census.nameLetters, string.format("%s%s", letter1, letter2))
+        table.insert(Census.nameLetter2, string.format("%s%s", letter1, letter2))
     end
 end
 
-
+--this function will inject who queries based on the current query, it increases the depth of the query until <50 results are returned
 function Census:RefineWhoParams()
 
-    ClassicEraCensusUI:AddLogMessage("|cffB0F70E-> RefineWhoParams")
+    addon:TriggerEvent("Census_LogMessage", "info", "RefineWhoParams")
 
     local index = self.currentQueryIndex;
     local query = self.whoQueries[index]
 
-    ClassicEraCensusUI:AddLogMessage(string.format("who query '%s'", query.who))
+    addon:TriggerEvent("Census_LogMessage", "who", query.who)
 
     local rangeSet;
-    if self.currentLevelRange == 60 then
-        rangeSet = self.levelRanges20;
-        self.currentLevelRange = 20;
+    if query.minLevel ~= query.maxLevel then
 
-    elseif self.currentLevelRange == 20 then
-        rangeSet = self.levelRanges10;
-        self.currentLevelRange = 10;
+        if self.currentLevelRange == 60 then
+            rangeSet = self.levelRanges20;
+            self.currentLevelRange = 20;
 
-    elseif self.currentLevelRange == 10 then
-        rangeSet = self.levelRanges5;
-        self.currentLevelRange = 5;
+        elseif self.currentLevelRange == 20 then
+            rangeSet = self.levelRanges10;
+            self.currentLevelRange = 10;
 
-    elseif self.currentLevelRange == 5 then
-        rangeSet = self.levelRanges1;
-        self.currentLevelRange = 1;
+        elseif self.currentLevelRange == 10 then
+            rangeSet = self.levelRanges5;
+            self.currentLevelRange = 5;
 
+        elseif self.currentLevelRange == 5 then
+            rangeSet = self.levelRanges1;
+            self.currentLevelRange = 1;
+
+        end
     end
 
-    ClassicEraCensusUI:AddLogMessage(string.format("using level ranges %s", self.currentLevelRange))
+    addon:TriggerEvent("Census_LogMessage", "info", string.format("using level ranges %s", self.currentLevelRange))
 
     table.remove(self.whoQueries, index)
-    ClassicEraCensusUI:AddLogMessage("removing current who query as it returns 50+ results")
+    addon:TriggerEvent("Census_LogMessage", "warning", "removing current who query as it returns 50+ results")
 
     if rangeSet ~= nil then
         for _, range in ipairs(rangeSet) do
@@ -151,7 +243,7 @@ function Census:RefineWhoParams()
 
             if (minL >= query.minLevel) and (maxL <= query.maxLevel) then
 
-                ClassicEraCensusUI:AddLogMessage(string.format("adding level range %d-%d", minL, maxL))
+                addon:TriggerEvent("Census_LogMessage", "info", string.format("adding level range %d-%d", minL, maxL))
 
                 local who = string.format([[r-"%s" c-"%s" %s]], query.race, query.class, range)
                 table.insert(self.whoQueries, index, {
@@ -167,19 +259,80 @@ function Census:RefineWhoParams()
 
     else
 
-        ClassicEraCensusUI:AddLogMessage("no rangeSet selected")
+        addon:TriggerEvent("Census_LogMessage", "warning", "no rangeSet selected")
 
-        for k, letters in ipairs(self.nameLetters) do
-            local who = string.format([[r-"%s" c-"%s" %d-%d n-"%s"]], query.race, query.class, query.minLevel, query.maxLevel, letters)
-            table.insert(self.whoQueries, index, {
-                who = who,
-                race = query.race,
-                class = query.class,
-                minLevel = query.minLevel,
-                maxLevel = query.maxLevel,
-            })
-            index = index + 1;
+        if not query.zone then
+
+            addon:TriggerEvent("Census_LogMessage", "info", "trying to reduce results using zones")
+
+            for k, zone in ipairs(self.zones) do
+
+                if locale ~= "enUS" then
+                    zone = addon.locales[locale][zone]
+                end
+
+                local who = string.format([[r-"%s" c-"%s" %d-%d z-"%s"]], query.race, query.class, query.minLevel, query.maxLevel, zone)
+                table.insert(self.whoQueries, index, {
+                    who = who,
+                    race = query.race,
+                    class = query.class,
+                    minLevel = query.minLevel,
+                    maxLevel = query.maxLevel,
+                    zone = zone,
+                })
+                index = index + 1;
+            end
+
+        else
+
+            if not query.name then
+
+                addon:TriggerEvent("Census_LogMessage", "info", "trying to reduce results using player names 1 letter")
+
+                for k, letter in ipairs(self.nameLetters) do
+                    local who = string.format([[r-"%s" c-"%s" %d-%d n-"%s"]], query.race, query.class, query.minLevel, query.maxLevel, letter)
+                    table.insert(self.whoQueries, index, {
+                        who = who,
+                        race = query.race,
+                        class = query.class,
+                        minLevel = query.minLevel,
+                        maxLevel = query.maxLevel,
+                        name = letter
+                    })
+                    index = index + 1;
+                end
+
+            else
+
+                if #query.name == 1 then
+
+                    addon:TriggerEvent("Census_LogMessage", "info", "trying to reduce results using player names 2 letters")
+
+                    for k, letters in ipairs(self.nameLetters2) do
+                        local who = string.format([[r-"%s" c-"%s" %d-%d n-"%s"]], query.race, query.class, query.minLevel, query.maxLevel, letters)
+                        table.insert(self.whoQueries, index, {
+                            who = who,
+                            race = query.race,
+                            class = query.class,
+                            minLevel = query.minLevel,
+                            maxLevel = query.maxLevel,
+                            name = letters
+                        })
+                        index = index + 1;
+                    end
+
+                else
+
+                    --likely now going deeper will cause the census to become to long to realistically record during a game play session
+                    --that is unless its a customized census involving just 1 race for example - this needs configuring in the options tab
+
+                    self:ProcessWhoResults()
+                    
+                end
+
+            end
         end
+
 
     end
 
@@ -188,7 +341,16 @@ end
 
 
 function Census:GetProgress()
-    
+
+    return {
+        elapsed = (time() - self.meta.timestamp),
+        percent = (self.currentQueryIndex / #self.whoQueries) * 100,
+        characterCount = #self.characters,
+        currentWho = self.whoQueries[self.currentQueryIndex],
+        currentIndex = self.currentQueryIndex,
+        numQueries = #self.whoQueries,
+    };
+
 end
 
 function Census:CreateRecord()
@@ -210,7 +372,7 @@ function Census:ProcessWhoResults()
 
     local numResults = C_FriendList.GetNumWhoResults()
 
-    ClassicEraCensusUI:AddLogMessage(string.format("Process who results, %d characters", numResults))
+    addon:TriggerEvent("Census_LogMessage", "info", string.format("Process who results, %d characters", numResults))
 
     for i = 1, numResults do
 
@@ -275,7 +437,7 @@ function Census:AttemptNextWhoQuery()
         --check if the previous query involved level ranges
         local query = self.whoQueries[self.currentQueryIndex]
         
-        ClassicEraCensusUI:AddLogMessage(string.format("Attempting who '%s'", query.who))
+        addon:TriggerEvent("Census_LogMessage", "who", string.format("Attempting who '%s'", query.who))
 
         C_FriendList.SendWho(query.who)
 
@@ -283,12 +445,15 @@ function Census:AttemptNextWhoQuery()
     end
 end
 
+function Census:CreateCustomCensus()
+    
+end
 
-function Census:New(author, realm, faction, region)
+function Census:CreateStandardCensus(author, realm, faction, region)
 
     local whoQueries = {}
     
-    for race, classes in pairs(self.factions.alliance) do
+    for race, classes in pairs(self.factions[faction]) do
         for _, class in ipairs(classes) do
             table.insert(whoQueries, {
                 who = string.format([[r-"%s" c-"%s" 1-60]], race, class),

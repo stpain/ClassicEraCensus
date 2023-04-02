@@ -7,6 +7,7 @@ local Census = ClassicEraCensus.Census;
 
 local EXPANSION = "classic"
 
+--move these into their own file at some point
 local L = {
     TABS_SCAN = "Scan", 
     TABS_CENSUS_LOG = "Log",
@@ -30,80 +31,68 @@ records.
     HOME_FILTERS_HELPTIP = "Adjust the level range and race/class filters to view data.\n\nIf no results show try selecting all races."
 }
 
+--if this goes beyond Era then this variable needs to be adjusted, either via blizz api or some config setting
 local MAX_LEVEL = 60;
 
-local racesOrdered = {
-    alliance = {
-        "human",
-        "dwarf",
-        "nightelf",
-        "gnome",
-    },
-    horde = {
-        "orc",
-        "undead",
-        "troll",
-        "tauren",
-    }
-}
-local classesOrdered = {
-    alliance = {
-        "druid",
-        "hunter",
-        "mage",
-        "paladin",
-        "priest",
-        "rogue",
-        "warlock",
-        "warrior",
-    },
-    horde = {
-        "druid",
-        "hunter",
-        "mage",
-        "priest",
-        "rogue",
-        "shaman",
-        "warlock",
-        "warrior",
-    },
-}
 
-
+--main mixin
 ClassicEraCensusMixin = {
-    previousWhoQueryTime = -999,
-    whoQueryStagger = 2.0,
-    currentQueryIndex = 1,
-    currentCensus = {
-        timestamp = 0,
-        author = "",
-        realm = "",
-        region = "",
-        faction = "",
-        characters = {},
-        charactersSeen = {},
-    },
     isCensusInProgress = false,
-    censusProgress = 0,
-    censusStartTime = time(),
-    selectedCensus = {},
     censusGroup = {},
     regions = {"EU", "NA", "KR", "TW", "Other"},
+    classesOrdered = {
+        alliance = {
+            "druid",
+            "hunter",
+            "mage",
+            "paladin",
+            "priest",
+            "rogue",
+            "warlock",
+            "warrior",
+        },
+        horde = {
+            "druid",
+            "hunter",
+            "mage",
+            "priest",
+            "rogue",
+            "shaman",
+            "warlock",
+            "warrior",
+        },
+    },
+    racesOrdered = {
+        alliance = {
+            "human",
+            "dwarf",
+            "nightelf",
+            "gnome",
+        },
+        horde = {
+            "orc",
+            "undead",
+            "troll",
+            "tauren",
+        }
+    }
 };
 
+--when we load get the callbacks setup, any addon navigation systems and any script hooking
 function ClassicEraCensusMixin:OnLoad()
 
     ClassicEraCensus:RegisterCallback("Database_OnInitialised", self.Database_OnInitialised, self)
     ClassicEraCensus:RegisterCallback("Database_OnCensusTableChanged", self.Database_OnCensusTableChanged, self)
-    ClassicEraCensus:RegisterCallback("Census_OnSelectionChanged", self.Census_OnSelectionChanged, self)
     ClassicEraCensus:RegisterCallback("Census_OnMultiSelectChanged", self.Census_OnMultiSelectChanged, self)
     ClassicEraCensus:RegisterCallback("Census_OnGuildSelectionChanged", self.Census_OnGuildSelectionChanged, self)
     ClassicEraCensus:RegisterCallback("Census_OnFinished", self.Census_OnFinished, self)
+    ClassicEraCensus:RegisterCallback("Census_LogMessage", self.Census_LogMessage, self)
     ClassicEraCensus:RegisterCallback("Database_OnConfigChanged", self.Database_OnConfigChanged, self)
 
     self:RegisterForDrag("LeftButton")
 
     self:RegisterEvent("ADDON_LOADED")
+    self:RegisterEvent("PLAYER_LOGOUT")
 
     SetPortraitToTexture(_G[self:GetName().."Portrait"], 134939)
 
@@ -147,16 +136,17 @@ function ClassicEraCensusMixin:OnLoad()
     for _, hook in ipairs(hooks) do
         WorldFrame:HookScript(hook, function()
             if self.isCensusInProgress then
-                self.currentCensus:AttemptNextWhoQuery()
                 FriendsFrame:UnregisterEvent("WHO_LIST_UPDATE")
-                C_FriendList.SetWhoToUi(true)
                 self:RegisterEvent("WHO_LIST_UPDATE")
+                C_FriendList.SetWhoToUi(true)
+                self.currentCensus:AttemptNextWhoQuery()
             end
         end)
     end
 
 end
 
+--addon navigation
 function ClassicEraCensusMixin:OnTabSelected(tabIndex)
     for k, container in ipairs(self.containers) do
         container:Hide()
@@ -164,19 +154,24 @@ function ClassicEraCensusMixin:OnTabSelected(tabIndex)
     self.containers[tabIndex]:Show()
 end
 
+--need to finish the Census object so it can return census progress data to be used in here
 function ClassicEraCensusMixin:OnUpdate()
     if self.isCensusInProgress then
-        -- self.censusProgress = (self.currentQueryIndex / #self.queries) * 100
-        -- self.scanProgress:SetValue(self.censusProgress)
-        -- self.scanProgress.text:SetText(string.format("%.1f", self.censusProgress))
-        --self.home.censusInfoText:SetText(string.format("Scan time: %s Returned %d characters, processed %d of %d queries", SecondsToClock(time() - self.currentCensus.timestamp), #self.currentCensus.characters, self.currentQueryIndex, #self.queries))
+        local progress = self.currentCensus:GetProgress()
+        self.home.censusInfoText:SetText(string.format("Scan time: %s Recorded %d characters, processed %d of %d queries", SecondsToClock(progress.elapsed), progress.characterCount, progress.currentIndex, progress.numQueries))
     end
 end
 
+--handle events
 function ClassicEraCensusMixin:OnEvent(event, ...)
     
     if event == "ADDON_LOADED" and ... == addonName then
         Database:Init()
+        self:UnregisterEvent("ADDON_LOADED")
+    end
+
+    if event == "PLAYER_LOGOUT" then
+        Database:CleanCensusTables()
     end
 
     if event == "WHO_LIST_UPDATE" then
@@ -184,17 +179,18 @@ function ClassicEraCensusMixin:OnEvent(event, ...)
     end
 end
 
-function ClassicEraCensusMixin:AddLogMessage(msg)
+--function used to log messages from the census
+function ClassicEraCensusMixin:Census_LogMessage(type, msg)
     self.log.listview.DataProvider:Insert({
+        type = type,
         message = msg,
     })
     self.log.listview.scrollBox:ScrollToEnd()
 end
 
+--called after the db has initialized, load the minimap button and call any UI setup functions now the db config data is ready
 function ClassicEraCensusMixin:Database_OnInitialised()
 
-    local addon = self;
-    
     local ldb = LibStub("LibDataBroker-1.1")
     local minimapDataBroker = ldb:NewDataObject(addonName, {
         type = "launcher",
@@ -203,12 +199,12 @@ function ClassicEraCensusMixin:Database_OnInitialised()
             print(button)
             self:SetShown(not self:IsVisible())
         end,
-        OnEnter = function(addon)
+        OnEnter = function(self)
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")
             GameTooltip:AddLine(addonName)
-            if addon.isCensusInProgress then
+            if ClassicEraCensusUI.isCensusInProgress then
                 GameTooltip:AddLine("Census progress")
-                GameTooltip_ShowProgressBar(GameTooltip, 1, 100, addon.censusProgress)
+                GameTooltip_ShowProgressBar(GameTooltip, 1, 100, ClassicEraCensusUI.currentCensus:GetProgress().percent)
             end
             GameTooltip:Show()
         end,
@@ -231,7 +227,7 @@ function ClassicEraCensusMixin:Database_OnInitialised()
 
 end
 
-
+--this was in case the config list got bigger and to avoid lots of if elseif 
 local configCallbacks = {
     region = function(ui, val)
         for k, region in ipairs(ui.regions) do
@@ -247,6 +243,7 @@ function ClassicEraCensusMixin:Database_OnConfigChanged(config, val)
     end    
 end
 
+--setup the home tab, charts, filters etc
 function ClassicEraCensusMixin:SetupHomeTab()
 
     local sliders = {
@@ -313,7 +310,7 @@ function ClassicEraCensusMixin:SetupHomeTab()
     local gender = UnitSex("player") == 2 and "male" or "female";
 
     local racesParentHeight = self.home.races:GetHeight()
-    for k, race in ipairs(racesOrdered[self.faction]) do
+    for k, race in ipairs(self.racesOrdered[self.faction]) do
 
         local bar = CreateFrame("FRAME", nil, self.home.races, "ClassicEraCensusBarChartBarTemplate")
         bar:SetWidthHeight(50, racesParentHeight)
@@ -334,7 +331,7 @@ function ClassicEraCensusMixin:SetupHomeTab()
     end
 
     local classesParentHeight = self.home.classes:GetHeight()
-    for k, class in ipairs(classesOrdered[self.faction]) do
+    for k, class in ipairs(self.classesOrdered[self.faction]) do
 
         local bar = CreateFrame("FRAME", nil, self.home.classes, "ClassicEraCensusBarChartBarTemplate")
         bar:SetWidthHeight(40, classesParentHeight)
@@ -380,6 +377,7 @@ function ClassicEraCensusMixin:SetupHomeTab()
 
 end
 
+--handle the level sliders value changing
 function ClassicEraCensusMixin:CensusLevelRange_OnChanged()
     local levelParentWidth = self.home.levels:GetWidth() - 4
     local levelParentHeight = self.home.levels:GetHeight()
@@ -411,6 +409,7 @@ function ClassicEraCensusMixin:CensusLevelRange_OnChanged()
 
 end
 
+--this is called when the db table 'census' changes (census added or removed)
 function ClassicEraCensusMixin:Database_OnCensusTableChanged()
 
     self:ClearAllFilters()
@@ -423,13 +422,7 @@ function ClassicEraCensusMixin:Database_OnCensusTableChanged()
     self.home.censusHistory.DataProvider:InsertTable(allCensus)
 end
 
-
-function ClassicEraCensusMixin:Census_OnSelectionChanged(census)
-    self:ClearAllFilters()
-    self.censusGroup = { census }
-    self:LoadCensusGroup(self.censusGroup)
-end
-
+--filter census group for guild matches
 function ClassicEraCensusMixin:Census_OnGuildSelectionChanged(guild)
     if self.home.guilds.selectedGuild == guild then
         self.home.guilds.selectedGuild = false
@@ -443,6 +436,7 @@ function ClassicEraCensusMixin:Census_OnGuildSelectionChanged(guild)
 
 end
 
+--handle census selection(s)
 function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
 
     if #self.censusGroup == 0 then
@@ -499,7 +493,7 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
 
 end
 
-
+--create a census object
 function ClassicEraCensusMixin:Census_Start()
 
     local name, realm = UnitFullName("player");
@@ -510,12 +504,13 @@ function ClassicEraCensusMixin:Census_Start()
     local faction = UnitFactionGroup("player")
     local region = Database:GetConfig("region")
 
-    self.currentCensus = Census:New(name, realm, faction, region)
+    self.currentCensus = Census:CreateStandardCensus(name, realm, faction, region)
 
     self.isCensusInProgress = true;
 
 end
 
+--for now this just pauses the WorldFrame hook clicks to prevent any who queries firing off
 function ClassicEraCensusMixin:Census_Pause()
     self.isCensusInProgress = not self.isCensusInProgress;
 end
@@ -524,12 +519,14 @@ function ClassicEraCensusMixin:Census_Stop()
     
 end
 
+--create a SV friendly record of the census object
 function ClassicEraCensusMixin:Census_OnFinished()
     self.isCensusInProgress = false;
     
     local census = self.currentCensus:CreateRecord()
     self.currentCensus = census;
-    --Database:InsertCensus(self.currentCensus)
+    Database:InsertCensus(self.currentCensus)
+    --self.currentCensus = {}
 end
 
 
@@ -609,16 +606,12 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     
     local guild = self.home.guilds.selectedGuild;
 
-    -- local filterText = ""
-    -- local filteredRaces, filteredClasses = "", ""
-
     local races, classes, levels = {}, {}, {};
     for k, bar in pairs(self.home.races.bars) do
         if bar.selected then
             isRaceFiltered = true;
             races[k:lower()] = true
 
-            --filteredRaces = string.format("%s %s", filteredRaces, k)
         end
     end
     for k, bar in pairs(self.home.classes.bars) do
@@ -626,21 +619,13 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
             isClassFiltered = true;
             classes[k:lower()] = true
 
-            --filteredClasses = string.format("%s %s", filteredClasses, k)
         end
     end
-
-    --self.home.censusInfoText:SetText(string.format("Races: %s, Classes %s", filteredRaces, filteredClasses))
 
     if levelRange then
         for level = levelRange[1], levelRange[2] do
             levels[level] = true
         end
-        --isFiltered = true;
-    end
-
-    if self.home.guilds.selectedGuild then
-        --isFiltered = true
     end
 
     if not censusGroup then
@@ -649,14 +634,6 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
 
     if #censusGroup == 0 then
         return
-    end
-
-    if isRaceFiltered == false then
-        --self:SetAllRaceFilters()
-    end
-
-    if isClassFiltered == false then
-        --self:SetAllClassFilters()
     end
 
     if isRaceFiltered == false and isClassFiltered == false then
@@ -668,14 +645,6 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
         characters = {},
         faction = censusGroup[1].faction,
     }
-
-    -- local function generateLevelFilter()
-    --     return function(character)
-    --         if levels[character.level] then
-    --             return true
-    --         end
-    --     end
-    -- end
 
     local function generateRaceFilter()
         return function(character)
@@ -712,7 +681,6 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     local characters, guildCheck
     if guild then
         characters = {}
-        --guildCheck = generateGuildFilter()
         for _, census in ipairs(censusGroup) do
             for k, character in ipairs(census.characters) do
                 if character.guild == guild then
@@ -882,6 +850,7 @@ function ClassicEraCensusMixin:WhoList_OnUpdate()
     C_FriendList.SetWhoToUi(false)
     self:UnregisterEvent("WHO_LIST_UPDATE")
 
+    --could probs add a config for this?
     self:LoadCensusGroup()
 
 end
