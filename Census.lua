@@ -362,6 +362,7 @@ function Census:CreateRecord()
         region = self.meta.region,
         faction = self.meta.faction,
         characters = self.characters,
+        customFilters = self.meta.customFilters,
     }
 
     return census;
@@ -445,25 +446,96 @@ function Census:AttemptNextWhoQuery()
     end
 end
 
-function Census:CreateCustomCensus()
+function Census:New(author, realm, faction, region, raceT, classT, levelRange)
     
-end
-
-function Census:CreateStandardCensus(author, realm, faction, region)
-
     local whoQueries = {}
-    
-    for race, classes in pairs(self.factions[faction]) do
-        for _, class in ipairs(classes) do
-            table.insert(whoQueries, {
-                who = string.format([[r-"%s" c-"%s" 1-60]], race, class),
-                race = race,
-                class = class,
-                minLevel = 1,
-                maxLevel = 60,
-            })
+
+    local range = "1-60";
+    if levelRange then
+        range = levelRange;
+    end
+
+    local customFilters = {};
+    if raceT or classT or levelRange then
+        local races;
+        local classes;
+        if raceT then
+            races = table.concat(raceT, ",")
+        end
+        if classT then
+            classes = table.concat(classT, ",")
+        end
+        customFilters = {
+            races = races,
+            classes = classes,
+            levelRange = levelRange,
+        }
+        addon:TriggerEvent("Census_LogMessage", "info", string.format("creating custom census, races(%s) classes(%s) levels(%s)", races or "-", classes or "-", levelRange or "-"))
+    end
+
+    if raceT and classT then
+        for _, race in ipairs(raceT) do
+            for _, class in ipairs(classT) do
+                table.insert(whoQueries, {
+                    who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
+                    race = race,
+                    class = class,
+                    minLevel = 1,
+                    maxLevel = 60,
+                })
+                addon:TriggerEvent("Census_LogMessage", "info", string.format("adding %s %s to census queries", race, class))
+            end
         end
     end
+
+    if raceT and (classT == nil) then
+        for _, race in ipairs(raceT) do
+            for _, class in ipairs(self.factions[faction][race]) do
+                table.insert(whoQueries, {
+                    who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
+                    race = race,
+                    class = class,
+                    minLevel = 1,
+                    maxLevel = 60,
+                })
+                addon:TriggerEvent("Census_LogMessage", "info", string.format("adding %s %s to census queries", race, class))
+            end
+        end
+    end
+
+    if (raceT == nil) and classT then
+        for _,class in ipairs(classT) do
+            for race, classes in pairs(self.factions[faction]) do
+                for _, _class in ipairs(classes) do
+                    if _class == class then
+                        table.insert(whoQueries, {
+                            who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
+                            race = race,
+                            class = class,
+                            minLevel = 1,
+                            maxLevel = 60,
+                        })
+                        addon:TriggerEvent("Census_LogMessage", "info", string.format("adding %s %s to census queries", race, class))
+                    end
+                end
+            end
+        end
+    end
+
+    if (raceT == nil) and (classT == nil) then
+        for race, classes in pairs(self.factions[faction]) do
+            for _, class in ipairs(classes) do
+                table.insert(whoQueries, {
+                    who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
+                    race = race,
+                    class = class,
+                    minLevel = 1,
+                    maxLevel = 60,
+                })
+            end
+        end
+    end
+    
 
     return Mixin({
         meta = {
@@ -472,6 +544,7 @@ function Census:CreateStandardCensus(author, realm, faction, region)
             realm = realm,
             region = region,
             faction = faction,
+            customFilters = customFilters,
         },
         currentQueryIndex = 1,
         currentLevelRange = 60,
@@ -483,5 +556,6 @@ function Census:CreateStandardCensus(author, realm, faction, region)
     }, self)
 
 end
+
 
 addon.Census = Census;

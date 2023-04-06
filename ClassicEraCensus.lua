@@ -220,6 +220,7 @@ function ClassicEraCensusMixin:Database_OnInitialised()
 
     self:LoadOptionsInterface()
     self:SetupHomeTab()
+    self:SetupOptionsTab()
 
     self:Database_OnCensusTableChanged()
 
@@ -241,6 +242,83 @@ function ClassicEraCensusMixin:Database_OnConfigChanged(config, val)
     if configCallbacks[config] then
         configCallbacks[config](self, val)
     end    
+end
+
+--setup the options tab
+function ClassicEraCensusMixin:SetupOptionsTab()
+
+    local gender = UnitSex("player") == 2 and "male" or "female";
+
+    for k, race in ipairs(self.racesOrdered[self.faction]) do
+        self.options.customCensus["race"..k].label:SetText(string.format("%s %s", CreateAtlasMarkup(string.format("raceicon-%s-%s", race, gender), 18, 18), ClassicEraCensus.locales[race]))
+        self.options.customCensus["race"..k].race = race;
+    end
+
+    for k, class in ipairs(self.classesOrdered[self.faction]) do
+        self.options.customCensus["class"..k].label:SetText(string.format("%s %s", CreateAtlasMarkup(string.format("classicon-%s", class), 18, 18), ClassicEraCensus.locales[class]))
+        self.options.customCensus["class"..k].class = class;
+    end
+
+    local sliders = {
+        ["Min level"] = "minLevel",
+        ["Max level"] = "maxLevel",
+    }
+
+    for label, slider in pairs(sliders) do
+
+        self.options.customCensus[slider].label:SetText(label)
+
+        _G[self.options.customCensus[slider]:GetName().."Low"]:SetText(" ")
+        _G[self.options.customCensus[slider]:GetName().."High"]:SetText(" ")
+        _G[self.options.customCensus[slider]:GetName().."Text"]:SetText(" ")
+
+        self.options.customCensus[slider]:SetScript("OnMouseWheel", function(s, delta)
+            s:SetValue(s:GetValue() + delta)
+        end)
+
+        self.options.customCensus[slider]:SetScript("OnValueChanged", function(s)
+            s.value:SetText(math.ceil(s:GetValue()))
+        end)
+    end
+
+    self.options.customCensus.minLevel:SetValue(1)
+    self.options.customCensus.maxLevel:SetValue(60)
+
+    self.options.customCensus.startCensus:SetScript("OnClick", function()
+
+        local races, raceFiltered = {}, false
+        for k, checkbox in ipairs(self.options.customCensus.raceFilters) do
+            if checkbox:GetChecked() then
+                table.insert(races, checkbox.race)
+                raceFiltered = true;
+            end
+        end
+
+        local classes, classFiltered = {}
+        for k, checkbox in ipairs(self.options.customCensus.classFilters) do
+            if checkbox:GetChecked() then
+                table.insert(classes, checkbox.class)
+                classFiltered = true;
+            end
+        end
+
+        local minL = self.options.customCensus.minLevel.value:GetText()
+        local maxL = self.options.customCensus.maxLevel.value:GetText()
+
+        local name, realm = UnitFullName("player");
+        if realm == nil or realm == "" then
+            realm = GetNormalizedRealmName();
+        end
+    
+        local faction = UnitFactionGroup("player")
+        local region = Database:GetConfig("region")
+    
+        self.currentCensus = Census:New(name, realm, faction, region, (raceFiltered == true and races or nil), (classFiltered == true and classes or nil), string.format("%s-%s", minL, maxL))
+    
+        self.isCensusInProgress = true;
+    
+    end)
+
 end
 
 --setup the home tab, charts, filters etc
@@ -368,7 +446,7 @@ function ClassicEraCensusMixin:SetupHomeTab()
         self.home.levels.bars[level] = bar;
     end
 
-    self.startScan:SetScript("OnClick", function()
+    self.startCensus:SetScript("OnClick", function()
         self:Census_Start()
     end)
 
@@ -504,7 +582,7 @@ function ClassicEraCensusMixin:Census_Start()
     local faction = UnitFactionGroup("player")
     local region = Database:GetConfig("region")
 
-    self.currentCensus = Census:CreateStandardCensus(name, realm, faction, region)
+    self.currentCensus = Census:New(name, realm, faction, region)
 
     self.isCensusInProgress = true;
 
@@ -526,7 +604,6 @@ function ClassicEraCensusMixin:Census_OnFinished()
     local census = self.currentCensus:CreateRecord()
     self.currentCensus = census;
     Database:InsertCensus(self.currentCensus)
-    --self.currentCensus = {}
 end
 
 

@@ -28,7 +28,7 @@
         </Layers>
     </Frame>
 
-    <Frame name="ClassicEraCensusUI" mixin="ClassicEraCensusMixin" inherits="PortraitFrameTemplate" parent="UIParent" enableMouse="true" movable="true">
+    <Frame name="ClassicEraCensusUI" mixin="ClassicEraCensusMixin" inherits="PortraitFrameTemplate" parent="UIParent" enableMouse="true" hidden="true" movable="true">
 
         <Size x="940" y="420"/>
 
@@ -46,34 +46,12 @@
                 <NormalTexture atlas="glueannouncementpopup-icon-info"/>
             </Button>
 
-            <Button parentKey="startScan" inherits="UIPanelButtonTemplate" text="Start Census">
+            <Button parentKey="startCensus" inherits="UIPanelButtonTemplate" text="Start Census">
                 <Size x="100" y="18"/>
                 <Anchors>
                     <Anchor point="RIGHT" relativeKey="$parent.help" relativePoint="LEFT" x="-2" y="0"/>
                 </Anchors>
             </Button>
-
-            <!-- <StatusBar parentKey="scanProgress" useParentLevel="true" minValue="0" maxValue="100" defaultValue="100" orientation="HORIZONTAL">
-                <Size x="100" y="10"/>
-                <Anchors>
-                    <Anchor point="RIGHT" relativeKey="$parent.startScan" relativePoint="LEFT"  x="-10" y="-1"/>
-                </Anchors>
-                <BarTexture file="Interface\TargetingFrame\UI-StatusBar"/>
-                <BarColor r="0.74" g="0.56" b="0.0" a="1"/>
-
-                <Layers>
-                    <Layer level="OVERLAY">
-                        <FontString parentKey="text" inherits="GameFontNormal">
-                            <Color r="1" g="1" b="1"/>
-                            <Size x="180" y="17"/>
-                            <Anchors>
-                                <Anchor point="CENTER" x="0" y="0"/>
-                            </Anchors>
-                        </FontString>
-                    </Layer>
-                </Layers>
-
-            </StatusBar> -->
 
             
             <CheckButton parentKey="regionCheckboxEU" inherits="ClassicEraCensusCheckButton">
@@ -303,10 +281,133 @@
                 </Anchors>
 
                 <Frames>
-                    <Frame parentKey="censusOptions" inherits="InsetFrameTemplate">
+                    <Frame parentKey="customCensus" inherits="InsetFrameTemplate">
+                        <Size x="500"/>
                         <Anchors>
-                            <Anchor point="TOPLEFT" x="6" y="0"/>
-                            <Anchor point="BOTTOMRIGHT" x="-6" y="6"/>
+                            <Anchor point="TOPLEFT" x="0" y="0"/>
+                            <Anchor point="BOTTOMLEFT" x="0" y="0"/>
+                        </Anchors>
+                        <Layers>
+                            <Layer level="OVERLAY">
+                                <FontString parentKey="header" inherits="GameFontNormal" text="Custom Census">
+                                    <Size y="24"/>
+                                    <Color r="1" g="1" b="1"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="8" y="-2"/>
+                                    </Anchors>
+                                </FontString>
+                                <FontString parentKey="racesHeader" inherits="GameFontNormal" text="Races">
+                                    <Size y="24"/>
+                                    <Color r="1" g="1" b="1"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="8" y="-50"/>
+                                    </Anchors>
+                                </FontString>
+                                <FontString parentKey="classesHeader" inherits="GameFontNormal" text="Classes">
+                                    <Size y="24"/>
+                                    <Color r="1" g="1" b="1"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="8" y="-100"/>
+                                    </Anchors>
+                                </FontString>
+                                <FontString parentKey="levelRangeHeader" inherits="GameFontNormal" text="Level Range">
+                                    <Size y="24"/>
+                                    <Color r="1" g="1" b="1"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="8" y="-200"/>
+                                    </Anchors>
+                                </FontString>
+                            </Layer>
+                        </Layers>
+                        <Frames>
+                            <CheckButton parentKey="race1" parentArray="raceFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" x="16" y="-70"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="race2" parentArray="raceFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.race1" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="race3" parentArray="raceFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.race2" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="race4" parentArray="raceFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.race3" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+
+                            <CheckButton parentKey="class1" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" x="16" y="-120"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="class2" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.class1" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="class3" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.class2" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="class4" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.class3" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="class5" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" relativeKey="$parent.class1" relativePoint="BOTTOMLEFT" x="0" y="-4"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="class6" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.class5" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="class7" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.class6" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+                            <CheckButton parentKey="class8" parentArray="classFilters" inherits="ClassicEraCensusCheckButton">
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.class7" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </CheckButton>
+
+                            <Slider name="ClassicEraCensusOptionsCustomCensusMinLevelSlider" parentKey="minLevel" maxValue="60" defaultValue="1" inherits="ClassicEraCensusSlider">
+                                <Size x="100" y="16"/>
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" relativeKey="$parent.class5" relativePoint="BOTTOMLEFT" x="60" y="-50"/>
+                                </Anchors>
+                            </Slider>
+                            <Slider name="ClassicEraCensusOptionsCustomCensusMaxLevelSlider" parentKey="maxLevel" maxValue="60" defaultValue="60" inherits="ClassicEraCensusSlider">
+                                <Size x="100" y="16"/>
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.minLevel" relativePoint="RIGHT" x="100" y="0"/>
+                                </Anchors>
+                            </Slider>
+
+                            <Button parentKey="startCensus" inherits="UIPanelButtonTemplate" text="Start Census">
+                                <Size x="100" y="18"/>
+                                <Anchors>
+                                    <Anchor point="TOPRIGHT" x="-6" y="-6"/>
+                                </Anchors>
+                            </Button>
+                        </Frames>
+                    </Frame>
+                    <Frame parentKey="importExport" inherits="InsetFrameTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.customCensus" relativePoint="TOPRIGHT" x="0" y="0"/>
+                            <Anchor point="BOTTOMLEFT" relativeKey="$parent.customCensus" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+                            <Anchor point="RIGHT" x="0" y="0"/>
                         </Anchors>
                     </Frame>
                 </Frames>
@@ -341,7 +442,7 @@
                     <Size y="22"/>
                     <Color r="1" g="1" b="1"/>
                     <Anchors>
-                        <Anchor point="RIGHT" relativeKey="$parent.startScan" relativePoint="LEFT" x="-10" y="0"/>
+                        <Anchor point="RIGHT" relativeKey="$parent.startCensus" relativePoint="LEFT" x="-10" y="0"/>
                     </Anchors>
                 </FontString>
             </Layer>

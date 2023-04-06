@@ -15,6 +15,7 @@ Libs\AceComm-3.0\AceComm-3.0.xml
 Libs\LibSerialize\lib.xml
 
 Data.lua
+Locales.lua
 
 Callbacks.lua
 Database.lua

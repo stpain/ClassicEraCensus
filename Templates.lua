@@ -156,6 +156,23 @@ function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, 
         self.text:SetTextColor(1,1,1,1)
 
     else
+
+        self:SetScript("OnEnter", function()
+            GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+            GameTooltip:AddLine("Census Info", 1,1,1)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddDoubleLine("|cffffffffAuthor", binding.author)
+            GameTooltip:AddDoubleLine("|cffffffffCharacters", #binding.characters)
+            if binding.customFilters and next(binding.customFilters) then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("Custom census") 
+                for k, v in pairs(binding.customFilters) do
+                    GameTooltip:AddDoubleLine("|cffffffff"..k, v)
+                end
+            end
+            GameTooltip:Show()
+        end)
+
         if binding.faction:lower() == "alliance" then
             self.text:SetText(string.format("%s %s", CreateAtlasMarkup("poi-alliance", 16, 16), date('%Y-%m-%d %H:%M:%S', binding.timestamp)))
             self.text:SetTextColor(21/255, 101/255, 192/255, 1) --21,101,192
