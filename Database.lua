@@ -11,6 +11,11 @@ local Database = {};
 
 function Database:Init()
 
+    self.version = tonumber(GetAddOnMetadata(name, "Version"));
+    if self.version == 0.1 then
+        ClassicEraCensus_Account = nil;
+    end
+
     if not ClassicEraCensus_Account then
         ClassicEraCensus_Account = {
             config = {

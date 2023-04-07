@@ -188,6 +188,21 @@ function ClassicEraCensusMixin:Census_LogMessage(type, msg)
     self.log.listview.scrollBox:ScrollToEnd()
 end
 
+
+function ClassicEraCensusMixin:GetCharacterInfo(character, info)
+    
+    local t = {}
+    t.name, t.level, t.race, t.class, t.guild = strsplit(",", character)
+
+    t.level = tonumber(t.level)
+
+    if not info then
+        return t.name, t.level, t.race, t.class, t.guild;
+    else
+        return t[info]
+    end
+end
+
 --called after the db has initialized, load the minimap button and call any UI setup functions now the db config data is ready
 function ClassicEraCensusMixin:Database_OnInitialised()
 
@@ -380,50 +395,60 @@ function ClassicEraCensusMixin:SetupHomeTab()
     self.home.levelSliderHelptip:SetText(L.HOME_FILTERS_HELPTIP)
     self.home.guildHelptip:SetText(L.HOME_GUILDS_HELPTIP)
 
-    self.home.races.bars = {}
-    self.home.classes.bars = {}
+    self.home.races.bars = {
+        alliance = {},
+        horde = {},
+    }
+    self.home.classes.bars = {
+        alliance = {},
+        horde = {},
+    }
     self.home.levels.bars = {}
     self.home.guilds.selectedGuild = false;
 
     local gender = UnitSex("player") == 2 and "male" or "female";
 
     local racesParentHeight = self.home.races:GetHeight()
-    for k, race in ipairs(self.racesOrdered[self.faction]) do
+    for _, faction in ipairs({"alliance", "horde"}) do
+        for k, race in ipairs(self.racesOrdered[faction]) do
 
-        local bar = CreateFrame("FRAME", nil, self.home.races, "ClassicEraCensusBarChartBarTemplate")
-        bar:SetWidthHeight(50, racesParentHeight)
-        bar:SetPoint("BOTTOMLEFT", 2 + ((k-1) * 50), 1)
-        bar:SetIcon(string.format("raceicon-%s-%s", race, gender))
-        bar:TrimIcon()
-        bar:SetBarColour({r = (191/255), g = (144/255), b = 0, a = 1})
+            local bar = CreateFrame("FRAME", nil, self.home.races, "ClassicEraCensusBarChartBarTemplate")
+            bar:SetWidthHeight(50, racesParentHeight)
+            bar:SetPoint("BOTTOMLEFT", 2 + ((k-1) * 50), 1)
+            bar:SetIcon(string.format("raceicon-%s-%s", race, gender))
+            bar:TrimIcon()
+            bar:SetBarColour({r = (191/255), g = (144/255), b = 0, a = 1})
 
-        bar.selected = false;
+            bar.selected = false;
 
-        bar:SetScript("OnMouseDown", function()
-            bar.selected = not bar.selected
-            bar.barBackground:SetShown(bar.selected)
-            self:FilterCensus(self.censusGroup)
-        end)
+            bar:SetScript("OnMouseDown", function()
+                bar.selected = not bar.selected
+                bar.barBackground:SetShown(bar.selected)
+                self:FilterCensus(self.censusGroup)
+            end)
 
-        self.home.races.bars[race] = bar;
+            self.home.races.bars[faction][race] = bar;
+        end
     end
 
     local classesParentHeight = self.home.classes:GetHeight()
-    for k, class in ipairs(self.classesOrdered[self.faction]) do
+    for _, faction in ipairs({"alliance", "horde"}) do
+        for k, class in ipairs(self.classesOrdered[faction]) do
 
-        local bar = CreateFrame("FRAME", nil, self.home.classes, "ClassicEraCensusBarChartBarTemplate")
-        bar:SetWidthHeight(40, classesParentHeight)
-        bar:SetPoint("BOTTOMLEFT", 2 + ((k-1) * 40), 1)
-        bar:SetIcon(string.format("classicon-%s", class))
-        bar:SetBarColour(RAID_CLASS_COLORS[class:upper()])
+            local bar = CreateFrame("FRAME", nil, self.home.classes, "ClassicEraCensusBarChartBarTemplate")
+            bar:SetWidthHeight(40, classesParentHeight)
+            bar:SetPoint("BOTTOMLEFT", 2 + ((k-1) * 40), 1)
+            bar:SetIcon(string.format("classicon-%s", class))
+            bar:SetBarColour(RAID_CLASS_COLORS[class:upper()])
 
-        bar:SetScript("OnMouseDown", function()
-            bar.selected = not bar.selected
-            bar.barBackground:SetShown(bar.selected)
-            self:FilterCensus(self.censusGroup)
-        end)
+            bar:SetScript("OnMouseDown", function()
+                bar.selected = not bar.selected
+                bar.barBackground:SetShown(bar.selected)
+                self:FilterCensus(self.censusGroup)
+            end)
 
-        self.home.classes.bars[class] = bar;
+            self.home.classes.bars[faction][class] = bar;
+        end
     end
 
 
@@ -556,9 +581,10 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
     local censusGroupCharactersSeen, count = {}, 0
     for _, census in ipairs(self.censusGroup) do
         for k, character in ipairs(census.characters) do
-            if not censusGroupCharactersSeen[character.name]then
+            local name = self:GetCharacterInfo(character, "name")
+            if not censusGroupCharactersSeen[name]then
                 count = count + 1;
-                censusGroupCharactersSeen[character.name] = true
+                censusGroupCharactersSeen[name] = true
             end
         end
     end
@@ -606,27 +632,46 @@ function ClassicEraCensusMixin:Census_OnFinished()
     Database:InsertCensus(self.currentCensus)
 end
 
+function ClassicEraCensusMixin:ShowFactionCharts(faction)
+    faction = faction:lower()
+    for _, _faction in ipairs({"alliance", "horde"}) do
+        for _, chart in pairs({"races", "classes"}) do
+            for _, bar in pairs(self.home[chart].bars[_faction]) do
+                bar:Hide()
+            end
+        end
+    end
+    for _, chart in pairs({"races", "classes"}) do
+        for _, bar in pairs(self.home[chart].bars[faction]) do
+            bar:Show()
+        end
+    end
+end
 
 function ClassicEraCensusMixin:ResetHomeCharts()
-    for _, chart in pairs({"races", "classes", "levels"}) do
-        for _, bar in ipairs(self.home[chart].bars) do
-            bar:SetBarValue(0)
+    for _, faction in ipairs({"alliance", "horde"}) do
+        for _, chart in pairs({"races", "classes"}) do
+            for _, bar in pairs(self.home[chart].bars[faction]) do
+                bar:SetBarValue(0)
+            end
         end
-        for _, bar in pairs(self.home[chart].bars) do
-            bar:SetBarValue(0)
-        end
+    end
+    for k, bar in ipairs(self.home.levels.bars) do
+        bar:SetBarValue(0)
     end
     self.home.guilds.DataProvider:Flush()
 end
 
 function ClassicEraCensusMixin:ClearAllFilters()
-    for k, bar in pairs(self.home.races.bars) do
-        bar.selected = false
-        bar.barBackground:SetShown(bar.selected)
-    end
-    for k, bar in pairs(self.home.classes.bars) do
-        bar.selected = false
-        bar.barBackground:SetShown(bar.selected)
+    for _, faction in ipairs({"alliance", "horde"}) do
+        for k, bar in pairs(self.home.races.bars[faction]) do
+            bar.selected = false
+            bar.barBackground:SetShown(bar.selected)
+        end
+        for k, bar in pairs(self.home.classes.bars[faction]) do
+            bar.selected = false
+            bar.barBackground:SetShown(bar.selected)
+        end
     end
     for k, bar in pairs(self.home.levels.bars) do
         bar.selected = false
@@ -635,19 +680,6 @@ function ClassicEraCensusMixin:ClearAllFilters()
     self.home.guilds.selectedGuild = false;
 end
 
-function ClassicEraCensusMixin:SetAllRaceFilters()
-    for k, bar in pairs(self.home.races.bars) do
-        bar.selected = true
-        bar.barBackground:SetShown(bar.selected)
-    end
-end
-
-function ClassicEraCensusMixin:SetAllClassFilters()
-    for k, bar in pairs(self.home.classes.bars) do
-        bar.selected = true
-        bar.barBackground:SetShown(bar.selected)
-    end
-end
 
 function ClassicEraCensusMixin:FilterCensusForGuild(guild)
 
@@ -662,7 +694,8 @@ function ClassicEraCensusMixin:FilterCensusForGuild(guild)
     }
     for _, census in ipairs(self.censusGroup) do
         for k, character in ipairs(census.characters) do
-            if character.guild == guild then
+            local _guild = self:GetCharacterInfo(character, "guild")
+            if _guild == guild then
                 table.insert(t.characters, character)
             end
         end
@@ -684,18 +717,19 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     local guild = self.home.guilds.selectedGuild;
 
     local races, classes, levels = {}, {}, {};
-    for k, bar in pairs(self.home.races.bars) do
-        if bar.selected then
-            isRaceFiltered = true;
-            races[k:lower()] = true
 
+    for _, faction in ipairs({"alliance", "horde"}) do
+        for k, bar in pairs(self.home.races.bars[faction]) do
+            if bar.selected then
+                isRaceFiltered = true;
+                races[k:lower()] = true
+            end
         end
-    end
-    for k, bar in pairs(self.home.classes.bars) do
-        if bar.selected then
-            isClassFiltered = true;
-            classes[k:lower()] = true
-
+        for k, bar in pairs(self.home.classes.bars[faction]) do
+            if bar.selected then
+                isClassFiltered = true;
+                classes[k:lower()] = true
+            end
         end
     end
 
@@ -725,13 +759,15 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
 
     local function generateRaceFilter()
         return function(character)
-            if levels[character.level] then
-                if character.race == "Night Elf" then
+            local level = self:GetCharacterInfo(character, "level")
+            if levels[level] then
+                local race = self:GetCharacterInfo(character, "race")
+                if race == "Night Elf" then
                     if races["nightelf"] then
                         return true
                     end
                 else
-                    if races[character.race:lower()] then
+                    if races[race:lower()] then
                         return true
                     end
                 end
@@ -740,8 +776,9 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     end
     local function generateClassFilter()
         return function(character)
-            if levels[character.level] then
-                if classes[character.class:lower()] then
+            local level = self:GetCharacterInfo(character, "level")
+            if levels[level] then
+                if classes[self:GetCharacterInfo(character, "class"):lower()] then
                     return true
                 end
             end
@@ -755,12 +792,13 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     }
 
     
-    local characters, guildCheck
+    local characters
     if guild then
         characters = {}
         for _, census in ipairs(censusGroup) do
             for k, character in ipairs(census.characters) do
-                if character.guild == guild then
+                local _guild = self:GetCharacterInfo(character, "guild")
+                if _guild == guild then
                     table.insert(characters, character)
                 end
             end
@@ -819,6 +857,12 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
 
     local faction = censusGroup[1].faction;
 
+    if not faction then
+        faction = self.faction;
+    end
+
+    self:ShowFactionCharts(faction)
+
     local races, classes, levels, guilds, guildsSeen, charactersSeen = {}, {}, {}, {}, {}, {};
     local characterCount = 0;
 
@@ -828,45 +872,47 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
         if census.faction == faction then
             for k, character in ipairs(census.characters) do
 
-                if not charactersSeen[character.name] then
+                local name, level, race, class, guild = self:GetCharacterInfo(character)
+
+                if not charactersSeen[name] then
 
                     table.insert(characters, character)
 
-                    charactersSeen[character.name] = true;
+                    charactersSeen[name] = true;
 
                     characterCount = characterCount + 1;
 
-                    if not races[character.race] then
-                        races[character.race] = 1;
+                    if not races[race] then
+                        races[race] = 1;
                     else
-                        races[character.race] = races[character.race] + 1;
+                        races[race] = races[race] + 1;
                     end
 
-                    if not classes[character.class] then
-                        classes[character.class] = 1;
+                    if not classes[class] then
+                        classes[class] = 1;
                     else
-                        classes[character.class] = classes[character.class] + 1;
+                        classes[class] = classes[class] + 1;
                     end
 
-                    local level = tostring(character.level)
+                    local level = tostring(level)
                     if not levels[level] then
                         levels[level] = 1;
                     else
                         levels[level] = levels[level] + 1;
                     end
 
-                    if not guildsSeen[character.guild] then
-                        guildsSeen[character.guild] = true;
+                    if not guildsSeen[guild] then
+                        guildsSeen[guild] = true;
                         table.insert(guilds, {
-                            name = character.guild,
+                            name = guild,
                             count = 1,
-                            xp = self:GetCharactersTotalXP(character.level)
+                            xp = self:GetCharactersTotalXP(level)
                         })
                     else
                         for k, guild in ipairs(guilds) do
-                            if guild.name == character.guild then
+                            if guild.name == guild then
                                 guild.count = guild.count + 1;
-                                guild.xp = guild.xp + self:GetCharactersTotalXP(character.level)
+                                guild.xp = guild.xp + self:GetCharactersTotalXP(level)
                             end
                         end
                     end
@@ -877,17 +923,21 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
         end
     end
 
-    for race, count in pairs(races) do
-        if race == "Night Elf" then
-            self.home.races.bars["nightelf"]:SetBarValue(count, characterCount)
-        else
-            self.home.races.bars[race:lower()]:SetBarValue(count, characterCount)
-        end
-    end
+    faction = faction:lower()
 
-    for class, count in pairs(classes) do
-        self.home.classes.bars[class:lower()]:SetBarValue(count, characterCount)
-    end
+    --for _, faction in ipairs({"alliance", "horde"}) do
+        for race, count in pairs(races) do
+            if race == "Night Elf" then
+                self.home.races.bars.alliance["nightelf"]:SetBarValue(count, characterCount)
+            else
+                self.home.races.bars[faction][race:lower()]:SetBarValue(count, characterCount)
+            end
+        end
+
+        for class, count in pairs(classes) do
+            self.home.classes.bars[faction][class:lower()]:SetBarValue(count, characterCount)
+        end
+    --end
 
     for level, count in pairs(levels) do
         self.home.levels.bars[tonumber(level)]:SetBarValue(count, characterCount)

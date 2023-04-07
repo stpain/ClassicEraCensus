@@ -354,6 +354,21 @@ function Census:GetProgress()
 end
 
 function Census:CreateRecord()
+
+    local characters = {}
+
+    for k, character in ipairs(self.characters) do
+
+        --make a comma seperated string of character data
+        --name level gender race class guild
+        table.insert(characters, string.format("%s,%s,%s,%s,%s",
+            character.name,
+            character.level,
+            character.race,
+            character.class,
+            character.guild
+        ))
+    end
     
     local census = {
         author = self.meta.author,
@@ -361,7 +376,7 @@ function Census:CreateRecord()
         realm = self.meta.realm,
         region = self.meta.region,
         faction = self.meta.faction,
-        characters = self.characters,
+        characters = characters,
         customFilters = self.meta.customFilters,
     }
 
