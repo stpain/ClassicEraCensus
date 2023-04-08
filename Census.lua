@@ -461,13 +461,18 @@ function Census:AttemptNextWhoQuery()
     end
 end
 
-function Census:New(author, realm, faction, region, raceT, classT, levelRange)
-    
+function Census:GenerateWhoQueries(faction, raceT, classT, levelRange)
+
     local whoQueries = {}
 
     local range = "1-60";
+    local minL, maxL = 1, 60;
     if levelRange then
         range = levelRange;
+
+        minL, maxL = strsplit("-", levelRange)
+        minL = tonumber(minL)
+        maxL = tonumber(maxL)
     end
 
     local customFilters = {};
@@ -485,7 +490,7 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
             classes = classes,
             levelRange = levelRange,
         }
-        addon:TriggerEvent("Census_LogMessage", "info", string.format("creating custom census, races(%s) classes(%s) levels(%s)", races or "-", classes or "-", levelRange or "-"))
+        addon:TriggerEvent("Census_LogMessage", "info", string.format("creating census quries, races(%s) classes(%s) levels(%s)", races or "-", classes or "-", levelRange or "-"))
     end
 
     if raceT and classT then
@@ -495,8 +500,8 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
                     who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
                     race = race,
                     class = class,
-                    minLevel = 1,
-                    maxLevel = 60,
+                    minLevel = minL,
+                    maxLevel = maxL,
                 })
                 addon:TriggerEvent("Census_LogMessage", "info", string.format("adding %s %s to census queries", race, class))
             end
@@ -510,8 +515,8 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
                     who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
                     race = race,
                     class = class,
-                    minLevel = 1,
-                    maxLevel = 60,
+                    minLevel = minL,
+                    maxLevel = maxL,
                 })
                 addon:TriggerEvent("Census_LogMessage", "info", string.format("adding %s %s to census queries", race, class))
             end
@@ -527,8 +532,8 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
                             who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
                             race = race,
                             class = class,
-                            minLevel = 1,
-                            maxLevel = 60,
+                            minLevel = minL,
+                            maxLevel = maxL,
                         })
                         addon:TriggerEvent("Census_LogMessage", "info", string.format("adding %s %s to census queries", race, class))
                     end
@@ -544,13 +549,41 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
                     who = string.format([[r-"%s" c-"%s" %s]], race, class, range),
                     race = race,
                     class = class,
-                    minLevel = 1,
-                    maxLevel = 60,
+                    minLevel = minL,
+                    maxLevel = maxL,
                 })
             end
         end
     end
+
+    return whoQueries, customFilters
+end
+
+function Census:NewCoopCensus(request)
     
+    return Mixin({
+        meta = {
+            timestamp = time(),
+            author = string.format("%s-%s", request.author, request.realm),
+            realm = request.realm,
+            region = request.region,
+            faction = request.faction,
+            customFilters = request.customFilters,
+        },
+        currentQueryIndex = 1,
+        currentLevelRange = 60,
+        whoQueries = request.whoQueries,
+        charactersSeen = {},
+        characters = {},
+        previousWhoAttemptTime = time(),
+        previousQuery = nil,
+    }, self)
+
+end
+
+function Census:New(author, realm, faction, region, raceT, classT, levelRange)
+
+    local whoQueries, customFilters = self:GenerateWhoQueries(faction, raceT, classT, levelRange)
 
     return Mixin({
         meta = {

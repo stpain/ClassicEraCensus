@@ -29,6 +29,7 @@ Templates.lua
 Templates.xml
 
 Census.lua
+Comms.lua
 
 ClassicEraCensus.lua
 ClassicEraCensus.xml

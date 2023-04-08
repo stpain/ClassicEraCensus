@@ -15,6 +15,9 @@ addon:GenerateCallbackEvents({
 
     "Census_OnFinished",
     "Census_LogMessage",
+    "Census_OnCoopCensusRequestAccepted",
+
+    "Comms_OnMessageReceived",
 
 })
 CallbackRegistryMixin.OnLoad(addon);

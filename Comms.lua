@@ -20,23 +20,8 @@ function Comms:Init()
 end
 
 
-function Comms:BroadcastGuildData(data, channel)
+function Comms:SendCoopCensusRequest(data, target)
 
-    local inInstance, instanceType = IsInInstance()
-    if instanceType ~= "none" then
-        return;
-    end
-    local inLockdown = InCombatLockdown()
-    if inLockdown then
-        return;
-    end
-
-    if IsInGuild() and GetGuildInfo("player") then
-
-    else
-        return;
-    end
-    
     -- add the version and sender guid to the message
     data.version = self.version;
 
@@ -44,8 +29,8 @@ function Comms:BroadcastGuildData(data, channel)
     local compressed = LibDeflate:CompressDeflate(serialized);
     local encoded    = LibDeflate:EncodeForWoWAddonChannel(compressed);
 
-    if encoded and channel then
-        self:SendCommMessage(self.prefix, encoded, channel, nil, "NORMAL")
+    if encoded and target then
+        self:SendCommMessage(self.prefix, encoded, "WHISPER", target, "NORMAL")
     end
     
 end
@@ -67,6 +52,8 @@ function Comms:OnCommReceived(prefix, message, distribution, sender)
     if not success or type(data) ~= "table" then
         return;
     end
+
+    addon:TriggerEvent("Comms_OnMessageReceived", sender, data)
 
 end
 

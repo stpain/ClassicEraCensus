@@ -2,6 +2,7 @@
 
 local addonName, ClassicEraCensus = ...;
 
+local Comms = ClassicEraCensus.Comms;
 local Database = ClassicEraCensus.db;
 local Census = ClassicEraCensus.Census;
 
@@ -88,6 +89,8 @@ function ClassicEraCensusMixin:OnLoad()
     ClassicEraCensus:RegisterCallback("Census_OnFinished", self.Census_OnFinished, self)
     ClassicEraCensus:RegisterCallback("Census_LogMessage", self.Census_LogMessage, self)
     ClassicEraCensus:RegisterCallback("Database_OnConfigChanged", self.Database_OnConfigChanged, self)
+    ClassicEraCensus:RegisterCallback("Comms_OnMessageReceived", self.Comms_OnMessageReceived, self)
+    ClassicEraCensus:RegisterCallback("Census_OnCoopCensusRequestAccepted", self.Census_OnCoopCensusRequestAccepted, self)
 
     self:RegisterForDrag("LeftButton")
 
@@ -179,6 +182,15 @@ function ClassicEraCensusMixin:OnEvent(event, ...)
     end
 end
 
+function ClassicEraCensusMixin:Comms_OnMessageReceived(sender, data)
+
+    if data.type == "COOP_CENSUS_REQUEST" then
+        StaticPopup_Show("ClassicEraCensusAcceptCoopCensusRequest", nil, nil, data.payload)
+    end
+    
+
+end
+
 --function used to log messages from the census
 function ClassicEraCensusMixin:Census_LogMessage(type, msg)
     self.log.listview.DataProvider:Insert({
@@ -196,10 +208,10 @@ function ClassicEraCensusMixin:GetCharacterInfo(character, info)
 
     t.level = tonumber(t.level)
 
-    if not info then
-        return t.name, t.level, t.race, t.class, t.guild;
-    else
+    if info and t[info] then
         return t[info]
+    else
+        return t.name, t.level, t.race, t.class, t.guild;
     end
 end
 
@@ -241,6 +253,8 @@ function ClassicEraCensusMixin:Database_OnInitialised()
 
     self.realmLabel:SetText(GetNormalizedRealmName())
 
+    Comms:Init()
+
 end
 
 --this was in case the config list got bigger and to avoid lots of if elseif 
@@ -267,6 +281,9 @@ function ClassicEraCensusMixin:SetupOptionsTab()
     for k, race in ipairs(self.racesOrdered[self.faction]) do
         self.options.customCensus["race"..k].label:SetText(string.format("%s %s", CreateAtlasMarkup(string.format("raceicon-%s-%s", race, gender), 18, 18), ClassicEraCensus.locales[race]))
         self.options.customCensus["race"..k].race = race;
+        if race == "nightelf" then
+            self.options.customCensus["race"..k].race = [[night elf]]
+        end
     end
 
     for k, class in ipairs(self.classesOrdered[self.faction]) do
@@ -299,7 +316,7 @@ function ClassicEraCensusMixin:SetupOptionsTab()
     self.options.customCensus.minLevel:SetValue(1)
     self.options.customCensus.maxLevel:SetValue(60)
 
-    self.options.customCensus.startCensus:SetScript("OnClick", function()
+    self.options.customCensus.getCustomFilters = function()
 
         local races, raceFiltered = {}, false
         for k, checkbox in ipairs(self.options.customCensus.raceFilters) do
@@ -309,7 +326,7 @@ function ClassicEraCensusMixin:SetupOptionsTab()
             end
         end
 
-        local classes, classFiltered = {}
+        local classes, classFiltered = {}, false
         for k, checkbox in ipairs(self.options.customCensus.classFilters) do
             if checkbox:GetChecked() then
                 table.insert(classes, checkbox.class)
@@ -320,6 +337,11 @@ function ClassicEraCensusMixin:SetupOptionsTab()
         local minL = self.options.customCensus.minLevel.value:GetText()
         local maxL = self.options.customCensus.maxLevel.value:GetText()
 
+        return (raceFiltered == true and races or nil), (classFiltered == true and classes or nil), string.format("%s-%s", minL, maxL)
+    end
+
+    self.options.customCensus.startCensus:SetScript("OnClick", function()
+
         local name, realm = UnitFullName("player");
         if realm == nil or realm == "" then
             realm = GetNormalizedRealmName();
@@ -327,11 +349,50 @@ function ClassicEraCensusMixin:SetupOptionsTab()
     
         local faction = UnitFactionGroup("player")
         local region = Database:GetConfig("region")
+
+        local races, classes, levelRange = self.options.customCensus.getCustomFilters()
     
-        self.currentCensus = Census:New(name, realm, faction, region, (raceFiltered == true and races or nil), (classFiltered == true and classes or nil), string.format("%s-%s", minL, maxL))
+        self.currentCensus = Census:New(name, realm, faction, region, races, classes, levelRange)
     
         self.isCensusInProgress = true;
     
+    end)
+
+    self.options.customCensus.sendCoopCensusRequest:SetScript("OnClick", function()
+
+        local playerName = self.options.customCensus.coopCensusTeamMemberName:GetText()
+        if playerName == "" then
+            return
+        end
+        if playerName then
+            
+        end
+    
+        local name, realm = UnitFullName("player");
+        if realm == nil or realm == "" then
+            realm = GetNormalizedRealmName();
+        end
+    
+        local faction = UnitFactionGroup("player")
+        local region = Database:GetConfig("region")
+
+        local races, classes, levelRange = self.options.customCensus.getCustomFilters()
+
+        local whoQueries, customFilters = Census:GenerateWhoQueries(faction, races, classes, levelRange)
+
+        local msg = {
+            type = "COOP_CENSUS_REQUEST",
+            payload = {
+                author = name,
+                realm = realm,
+                faction = faction,
+                region = region,
+                whoQueries = whoQueries,
+                customFilters = customFilters,
+            }
+        }
+
+        Comms:SendCoopCensusRequest(msg, playerName)
     end)
 
 end
@@ -597,6 +658,18 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
 
 end
 
+
+function ClassicEraCensusMixin:Census_OnCoopCensusRequestAccepted(request)
+    
+    if self.isCensusInProgress then
+        return;
+    end
+
+    self.currentCensus = Census:NewCoopCensus(request)
+    self.isCensusInProgress = true;
+    self.isCoopCensus = true;
+end
+
 --create a census object
 function ClassicEraCensusMixin:Census_Start()
 
@@ -626,10 +699,16 @@ end
 --create a SV friendly record of the census object
 function ClassicEraCensusMixin:Census_OnFinished()
     self.isCensusInProgress = false;
+
+    if self.isCoopCensus == true then
+        
+        --need to return the data now!
+    else
+        local census = self.currentCensus:CreateRecord()
+        self.currentCensus = census;
+        Database:InsertCensus(self.currentCensus)
+    end
     
-    local census = self.currentCensus:CreateRecord()
-    self.currentCensus = census;
-    Database:InsertCensus(self.currentCensus)
 end
 
 function ClassicEraCensusMixin:ShowFactionCharts(faction)
@@ -873,6 +952,7 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
             for k, character in ipairs(census.characters) do
 
                 local name, level, race, class, guild = self:GetCharacterInfo(character)
+                local xp = self:GetCharactersTotalXP(level)
 
                 if not charactersSeen[name] then
 
@@ -906,13 +986,13 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
                         table.insert(guilds, {
                             name = guild,
                             count = 1,
-                            xp = self:GetCharactersTotalXP(level)
+                            xp = xp
                         })
                     else
-                        for k, guild in ipairs(guilds) do
-                            if guild.name == guild then
-                                guild.count = guild.count + 1;
-                                guild.xp = guild.xp + self:GetCharactersTotalXP(level)
+                        for k, v in ipairs(guilds) do
+                            if v.name == guild then
+                                v.count = v.count + 1;
+                                v.xp = v.xp + xp
                             end
                         end
                     end
@@ -947,7 +1027,7 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
     table.sort(guilds, function(a, b)
         if a.xp == b.xp then
             if a.count == b.count then
-                return a.name <b.name
+                return a.name < b.name
             else
                 return a.count < b.count
             end

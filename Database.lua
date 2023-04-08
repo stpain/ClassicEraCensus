@@ -105,6 +105,20 @@ function Database:DeleteCensus(censusGroup)
     addon:TriggerEvent("Database_OnCensusTableChanged")
 end
 
+function Database:GetCharacterInfo(character, info)
+    
+    local t = {}
+    t.name, t.level, t.race, t.class, t.guild = strsplit(",", character)
+
+    t.level = tonumber(t.level)
+
+    if info and t[info] then
+        return t[info]
+    else
+        return t.name, t.level, t.race, t.class, t.guild;
+    end
+end
+
 function Database:CreateMerge(censusGroup, name)
 
 
@@ -139,15 +153,17 @@ function Database:CreateMerge(censusGroup, name)
 
     local charactersSeen = {}
     for k, v in ipairs(t) do
-        if not charactersSeen[v.character.name] then
-            charactersSeen[v.character.name] = v.timestamp
+        local name = self:GetCharacterInfo(v.character, "name")
+        if not charactersSeen[name] then
+            charactersSeen[name] = v.timestamp
             table.insert(merge.characters, v.character)
 
         else
 
-            if v.timestamp > charactersSeen[v.character.name] then
+            if v.timestamp > charactersSeen[name] then
                 for k, x in ipairs(merge.characters) do
-                    if x.name == v.character.name then
+                    local _name = self:GetCharacterInfo(x, "name")
+                    if _name == name then
                         x = v.character;
                     end
                 end

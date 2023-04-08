@@ -50,6 +50,23 @@ StaticPopupDialogs["ClassicEraCensusDeleteConfirm"] = {
     showAlert = 1,
 }
 
+StaticPopupDialogs["ClassicEraCensusAcceptCoopCensusRequest"] = {
+    text = "Accept co-op census request?",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function(self, censusRequest)
+        addon:TriggerEvent("Census_OnCoopCensusRequestAccepted", censusRequest)
+    end,
+    OnCancel = function(self)
+
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = false,
+    preferredIndex = 3,
+    showAlert = 1,
+}
+
 
 -- StaticPopupDialogs["VendorMateDialogVendorItemsConfirm"] = {
 --     text = string.format("%s %s %s\n\n%s\n\n%s", TRANSMOG_SOURCE_3, "%s", FILTERS, "%s", L.DIALOG_VENDOR_CONFIRM),

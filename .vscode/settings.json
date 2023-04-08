@@ -41,6 +41,8 @@
         "DressUpItemLink",
         "GameTooltip_ShowStatusBar",
         "GameTooltip_ShowProgressBar",
-        "message"
+        "message",
+        "GameFontNormal",
+        "GameFontNormalSmall"
     ]
 }
