@@ -2,35 +2,14 @@
 
 local addonName, ClassicEraCensus = ...;
 
+local locale = GetLocale()
+local L = ClassicEraCensus.locales[locale];
+
 local Comms = ClassicEraCensus.Comms;
 local Database = ClassicEraCensus.db;
 local Census = ClassicEraCensus.Census;
 
 local EXPANSION = "classic"
-
---move these into their own file at some point
-local L = {
-    TABS_SCAN = "Scan", 
-    TABS_CENSUS_LOG = "Log",
-    TABS_CENSUS = "Census",
-    SELECT_REGION = " - Region:",
-    HOME_IS_QUICK_CENSUS_LABEL = "Quick Scan",
-    HOME_GUILDS_HELPTIP = "Guilds are orderd by the total XP of all members",
-    HOME_CENSUS_HISTORY_HELPTIP = [[
-Census records are listed here.
-
-%s Merged records are shown
-with this icon.
-
-You can select multiple records 
-to view census data.
-
-You can merge or delete selected
-records.
-]],
-    HOME_CLASSES_HELPTIP = "You can select different parts on the charts to filter the results.",
-    HOME_FILTERS_HELPTIP = "Adjust the level range and race/class filters to view data.\n\nIf no results show try selecting all races."
-}
 
 --if this goes beyond Era then this variable needs to be adjusted, either via blizz api or some config setting
 local MAX_LEVEL = 60;
@@ -38,7 +17,9 @@ local MAX_LEVEL = 60;
 
 --main mixin
 ClassicEraCensusMixin = {
+    helpTipsShown = false,
     isCensusInProgress = false,
+    isCoopCensus = false,
     censusGroup = {},
     regions = {"EU", "NA", "KR", "TW", "Other"},
     classesOrdered = {
@@ -119,9 +100,15 @@ function ClassicEraCensusMixin:OnLoad()
     end
 
     self.help:SetScript("OnMouseDown", function()
+
+        self.helpTipsShown = not self.helpTipsShown;
         
         for k, tip in ipairs(self.home.helptips) do
-            tip:SetShown(not tip:IsVisible())
+            tip:SetShown(self.helpTipsShown)
+        end
+        
+        for k, tip in ipairs(self.options.customCensus.helptips) do
+            tip:SetShown(self.helpTipsShown)
         end
 
     end)
@@ -277,10 +264,14 @@ end
 --setup the options tab
 function ClassicEraCensusMixin:SetupOptionsTab()
 
+    self.options.customCensus.coopCensusHelptip:SetText(L.CUSTOM_CENSUS_COOP_HELPTIP)
+    self.options.customCensus.customCensusFiltersHelptip:SetText(L.CUSTOM_CENSUS_FILTERS_HELPTIP)
+    self.options.helpAbout.text:SetText(L.HELP_ABOUT)
+
     local gender = UnitSex("player") == 2 and "male" or "female";
 
     for k, race in ipairs(self.racesOrdered[self.faction]) do
-        self.options.customCensus["race"..k].label:SetText(string.format("%s %s", CreateAtlasMarkup(string.format("raceicon-%s-%s", race, gender), 18, 18), ClassicEraCensus.locales[race]))
+        self.options.customCensus["race"..k].label:SetText(string.format("%s %s", CreateAtlasMarkup(string.format("raceicon-%s-%s", race, gender), 18, 18), L[race]))
         self.options.customCensus["race"..k].race = race;
         if race == "nightelf" then
             self.options.customCensus["race"..k].race = [[night elf]]
@@ -288,7 +279,7 @@ function ClassicEraCensusMixin:SetupOptionsTab()
     end
 
     for k, class in ipairs(self.classesOrdered[self.faction]) do
-        self.options.customCensus["class"..k].label:SetText(string.format("%s %s", CreateAtlasMarkup(string.format("classicon-%s", class), 18, 18), ClassicEraCensus.locales[class]))
+        self.options.customCensus["class"..k].label:SetText(string.format("%s %s", CreateAtlasMarkup(string.format("classicon-%s", class), 18, 18), L[class]))
         self.options.customCensus["class"..k].class = class;
     end
 
@@ -661,7 +652,7 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
 
 end
 
-
+--called when the popup to confirm accepting the coop census request
 function ClassicEraCensusMixin:Census_OnCoopCensusRequestAccepted(request)
     
     if self.isCensusInProgress then
@@ -673,8 +664,10 @@ function ClassicEraCensusMixin:Census_OnCoopCensusRequestAccepted(request)
     self.isCoopCensus = true;
 end
 
+--called when the popup to accept the coop census record data
 function ClassicEraCensusMixin:Census_OnCoopCensusRecordAccepted(record)
 
+    --add this census to the db and allow the user to merge the relevant census records
     Database:InsertCensus(record.census)
 end
 

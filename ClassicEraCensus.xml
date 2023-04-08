@@ -395,6 +395,13 @@
                                 </Anchors>
                             </Slider>
 
+                            <Frame parentKey="customCensusFiltersHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_BottomArrow" hidden="true">
+                                <Size x="200" y="50"/>
+                                <Anchors>
+                                    <Anchor point="BOTTOM" relativeKey="$parent.race3" relativePoint="TOP" x="-40" y="20"/>
+                                </Anchors>
+                            </Frame>
+
                             <EditBox parentkey="coopCensusTeamMemberName" inherits="InputBoxTemplate" autoFocus="false">
                                 <Size x="200" y="24"/>
                                 <Anchors>
@@ -420,6 +427,13 @@
                                 </Layers>
                             </EditBox>
 
+                            <Frame parentKey="coopCensusHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_RightArrow" hidden="true">
+                                <Size x="200" y="80"/>
+                                <Anchors>
+                                    <Anchor point="RIGHT" relativeKey="$parent.coopCensusTeamMemberName" relativePoint="LEFT" x="-20" y="0"/>
+                                </Anchors>
+                            </Frame>
+
                             <Button parentKey="sendCoopCensusRequest" inherits="UIPanelButtonTemplate" text="Send Census Request">
                                 <Size x="200" y="20"/>
                                 <Anchors>
@@ -436,7 +450,7 @@
 
                         </Frames>
                     </Frame>
-                    <Frame parentKey="importExport" inherits="InsetFrameTemplate">
+                    <Frame parentKey="helpAbout" inherits="InsetFrameTemplate">
                         <Anchors>
                             <Anchor point="TOPLEFT" relativeKey="$parent.customCensus" relativePoint="TOPRIGHT" x="0" y="0"/>
                             <Anchor point="BOTTOMLEFT" relativeKey="$parent.customCensus" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
@@ -444,11 +458,12 @@
                         </Anchors>
                         <Layers>
                             <Layer level="OVERLAY">
-                                <FontString parentKey="header" inherits="GameFontNormal" text="-">
+                                <FontString parentKey="text" inherits="GameFontNormal">
                                     <Size y="24"/>
                                     <Color r="1" g="1" b="1"/>
                                     <Anchors>
                                         <Anchor point="TOPLEFT" x="8" y="-2"/>
+                                        <Anchor point="BOTTOMRIGHT" x="-8" y="2"/>
                                     </Anchors>
                                 </FontString>
                             </Layer>
