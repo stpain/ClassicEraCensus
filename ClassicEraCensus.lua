@@ -91,6 +91,7 @@ function ClassicEraCensusMixin:OnLoad()
     ClassicEraCensus:RegisterCallback("Database_OnConfigChanged", self.Database_OnConfigChanged, self)
     ClassicEraCensus:RegisterCallback("Comms_OnMessageReceived", self.Comms_OnMessageReceived, self)
     ClassicEraCensus:RegisterCallback("Census_OnCoopCensusRequestAccepted", self.Census_OnCoopCensusRequestAccepted, self)
+    ClassicEraCensus:RegisterCallback("Census_OnCoopCensusRecordAccepted", self.Census_OnCoopCensusRecordAccepted, self)
 
     self:RegisterForDrag("LeftButton")
 
@@ -132,11 +133,8 @@ function ClassicEraCensusMixin:OnLoad()
         end
     end)
 
-    local hooks = {
-        "OnMouseDown",
-        "OnMouseUp",
-    }
-    for _, hook in ipairs(hooks) do
+
+    for _, hook in ipairs({"OnMouseDown", "OnMouseUp"}) do
         WorldFrame:HookScript(hook, function()
             if self.isCensusInProgress then
                 FriendsFrame:UnregisterEvent("WHO_LIST_UPDATE")
@@ -188,6 +186,9 @@ function ClassicEraCensusMixin:Comms_OnMessageReceived(sender, data)
         StaticPopup_Show("ClassicEraCensusAcceptCoopCensusRequest", nil, nil, data.payload)
     end
     
+    if data.type == "COOP_CENSUS_RECORD" then
+        StaticPopup_Show("ClassicEraCensusAcceptCoopCensusRecord", nil, nil, data.payload)
+    end
 
 end
 
@@ -200,7 +201,7 @@ function ClassicEraCensusMixin:Census_LogMessage(type, msg)
     self.log.listview.scrollBox:ScrollToEnd()
 end
 
-
+--get data from the character string
 function ClassicEraCensusMixin:GetCharacterInfo(character, info)
     
     local t = {}
@@ -392,7 +393,7 @@ function ClassicEraCensusMixin:SetupOptionsTab()
             }
         }
 
-        Comms:SendCoopCensusRequest(msg, playerName)
+        Comms:SendCoopCensus(msg, playerName)
     end)
 
 end
@@ -652,6 +653,8 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
 
     if #self.censusGroup == 0 then
         self.home.censusInfoText:SetText("No census selected")
+        self:ClearAllFilters()
+        self:ResetHomeCharts()
     else
         self.home.censusInfoText:SetText(string.format("Selected %d, %d unique characters", #self.censusGroup, count))
     end
@@ -668,6 +671,11 @@ function ClassicEraCensusMixin:Census_OnCoopCensusRequestAccepted(request)
     self.currentCensus = Census:NewCoopCensus(request)
     self.isCensusInProgress = true;
     self.isCoopCensus = true;
+end
+
+function ClassicEraCensusMixin:Census_OnCoopCensusRecordAccepted(record)
+
+    Database:InsertCensus(record.census)
 end
 
 --create a census object
@@ -698,16 +706,29 @@ end
 
 --create a SV friendly record of the census object
 function ClassicEraCensusMixin:Census_OnFinished()
-    self.isCensusInProgress = false;
 
     if self.isCoopCensus == true then
         
         --need to return the data now!
+        local census = self.currentCensus:CreateRecord()
+        local msg = {
+            type = "COOP_CENSUS_RECORD",
+            payload = {
+                census = census,
+            }
+        }
+
+        local author = census.author
+        Comms:SendCoopCensus(msg, author)
+
     else
         local census = self.currentCensus:CreateRecord()
         self.currentCensus = census;
         Database:InsertCensus(self.currentCensus)
     end
+
+    self.isCensusInProgress = false;
+    self.isCoopCensus = false;
     
 end
 

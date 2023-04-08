@@ -43,6 +43,7 @@
         "GameTooltip_ShowProgressBar",
         "message",
         "GameFontNormal",
-        "GameFontNormalSmall"
+        "GameFontNormalSmall",
+        "NEW"
     ]
 }

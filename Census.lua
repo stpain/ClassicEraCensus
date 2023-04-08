@@ -370,7 +370,7 @@ function Census:CreateRecord()
         ))
     end
     
-    local census = {
+    return {
         author = self.meta.author,
         timestamp = self.meta.timestamp,
         realm = self.meta.realm,
@@ -379,8 +379,6 @@ function Census:CreateRecord()
         characters = characters,
         customFilters = self.meta.customFilters,
     }
-
-    return census;
 
 end
 

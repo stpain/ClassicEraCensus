@@ -16,6 +16,7 @@ addon:GenerateCallbackEvents({
     "Census_OnFinished",
     "Census_LogMessage",
     "Census_OnCoopCensusRequestAccepted",
+    "Census_OnCoopCensusRecordAccepted",
 
     "Comms_OnMessageReceived",
 

@@ -20,7 +20,7 @@ function Comms:Init()
 end
 
 
-function Comms:SendCoopCensusRequest(data, target)
+function Comms:SendCoopCensus(data, target)
 
     -- add the version and sender guid to the message
     data.version = self.version;
