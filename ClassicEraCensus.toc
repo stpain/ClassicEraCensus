@@ -1,6 +1,6 @@
 ## Interface: 11403
 ## Author: Sam
-## Version: 0.311
+## Version: 0.3111
 ## Title: ClassicEraCensus
 ## Notes: Find a Guild
 ## SavedVariables: ClassicEraCensus_Account
