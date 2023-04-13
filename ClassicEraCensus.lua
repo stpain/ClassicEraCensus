@@ -2,6 +2,9 @@
 
 local addonName, ClassicEraCensus = ...;
 
+local LibDeflate = LibStub:GetLibrary("LibDeflate")
+local LibSerialize = LibStub:GetLibrary("LibSerialize")
+
 local locale = GetLocale()
 local L = ClassicEraCensus.locales[locale];
 
@@ -85,7 +88,7 @@ function ClassicEraCensusMixin:OnLoad()
     _G[self:GetName().."TitleText"]:SetJustifyH("LEFT")
 
     self.numTabs = #self.tabs
-    self.tab1:SetText(HOME)
+    self.tab1:SetText(L.DASHBOARD)
     self.tab2:SetText(OPTIONS)
     self.tab3:SetText(L.TABS_CENSUS_LOG)
 
@@ -189,19 +192,19 @@ function ClassicEraCensusMixin:Census_LogMessage(type, msg)
 end
 
 --get data from the character string
-function ClassicEraCensusMixin:GetCharacterInfo(character, info)
+-- function ClassicEraCensusMixin:GetCharacterInfo(character, info)
     
-    local t = {}
-    t.name, t.level, t.race, t.class, t.guild = strsplit(",", character)
+--     local t = {}
+--     t.name, t.level, t.race, t.class, t.guild = strsplit(",", character)
 
-    t.level = tonumber(t.level)
+--     t.level = tonumber(t.level)
 
-    if info and t[info] then
-        return t[info]
-    else
-        return t.name, t.level, t.race, t.class, t.guild;
-    end
-end
+--     if info and t[info] then
+--         return t[info]
+--     else
+--         return t.name, t.level, t.race, t.class, t.guild;
+--     end
+-- end
 
 --called after the db has initialized, load the minimap button and call any UI setup functions now the db config data is ready
 function ClassicEraCensusMixin:Database_OnInitialised()
@@ -387,6 +390,24 @@ function ClassicEraCensusMixin:SetupOptionsTab()
         Comms:SendCoopCensus(msg, playerName)
     end)
 
+    self.options.helpAbout.export.EditBox:SetMaxLetters(1000000000)
+    self.options.helpAbout.exportCensus:SetScript("OnClick", function()
+
+        local census = Database:GetLatestCensus()
+
+        if not census then
+            census = self.censusGroup
+        end
+    
+        local serialized = LibSerialize:Serialize(census)
+        local compressed = LibDeflate:CompressDeflate(serialized)
+        local encoded = LibDeflate:EncodeForPrint(compressed)
+
+        print(encoded)
+
+        self.options.helpAbout.export.EditBox:SetText(encoded)
+
+    end)
 end
 
 --setup the home tab, charts, filters etc
@@ -634,10 +655,10 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
     local censusGroupCharactersSeen, count = {}, 0
     for _, census in ipairs(self.censusGroup) do
         for k, character in ipairs(census.characters) do
-            local name = self:GetCharacterInfo(character, "name")
-            if not censusGroupCharactersSeen[name]then
+            --local name = self:GetCharacterInfo(character, "name")
+            if not censusGroupCharactersSeen[character.name]then
                 count = count + 1;
-                censusGroupCharactersSeen[name] = true
+                censusGroupCharactersSeen[character.name] = true
             end
         end
     end
@@ -666,6 +687,11 @@ end
 
 --called when the popup to accept the coop census record data
 function ClassicEraCensusMixin:Census_OnCoopCensusRecordAccepted(record)
+
+    --clean up some coop stuff
+    if record.census.requestAuthor then
+        record.census.requestAuthor = nil
+    end
 
     --add this census to the db and allow the user to merge the relevant census records
     Database:InsertCensus(record.census)
@@ -711,8 +737,8 @@ function ClassicEraCensusMixin:Census_OnFinished()
             }
         }
 
-        local author = census.author
-        Comms:SendCoopCensus(msg, author)
+        local playerNameRealm = census.requestAuthor
+        Comms:SendCoopCensus(msg, playerNameRealm)
 
     else
         local census = self.currentCensus:CreateRecord()
@@ -787,8 +813,8 @@ function ClassicEraCensusMixin:FilterCensusForGuild(guild)
     }
     for _, census in ipairs(self.censusGroup) do
         for k, character in ipairs(census.characters) do
-            local _guild = self:GetCharacterInfo(character, "guild")
-            if _guild == guild then
+            --local _guild = self:GetCharacterInfo(character, "guild")
+            if character.guild == guild then
                 table.insert(t.characters, character)
             end
         end
@@ -852,15 +878,15 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
 
     local function generateRaceFilter()
         return function(character)
-            local level = self:GetCharacterInfo(character, "level")
-            if levels[level] then
-                local race = self:GetCharacterInfo(character, "race")
-                if race == "Night Elf" then
+            --local level = self:GetCharacterInfo(character, "level")
+            if levels[character.level] then
+                --local race = self:GetCharacterInfo(character, "race")
+                if character.race == "Night Elf" then
                     if races["nightelf"] then
                         return true
                     end
                 else
-                    if races[race:lower()] then
+                    if races[character.race:lower()] then
                         return true
                     end
                 end
@@ -869,9 +895,9 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
     end
     local function generateClassFilter()
         return function(character)
-            local level = self:GetCharacterInfo(character, "level")
-            if levels[level] then
-                if classes[self:GetCharacterInfo(character, "class"):lower()] then
+            --local level = self:GetCharacterInfo(character, "level")
+            if levels[character.level] then
+                if classes[character.class:lower()] then
                     return true
                 end
             end
@@ -890,8 +916,8 @@ function ClassicEraCensusMixin:FilterCensus(censusGroup)
         characters = {}
         for _, census in ipairs(censusGroup) do
             for k, character in ipairs(census.characters) do
-                local _guild = self:GetCharacterInfo(character, "guild")
-                if _guild == guild then
+                --local _guild = self:GetCharacterInfo(character, "guild")
+                if character.guild == guild then
                     table.insert(characters, character)
                 end
             end
@@ -965,46 +991,46 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
         if census.faction == faction then
             for k, character in ipairs(census.characters) do
 
-                local name, level, race, class, guild = self:GetCharacterInfo(character)
-                local xp = self:GetCharactersTotalXP(level)
+                --local name, level, race, class, guild = self:GetCharacterInfo(character)
+                local xp = self:GetCharactersTotalXP(character.level)
 
-                if not charactersSeen[name] then
+                if not charactersSeen[character.name] then
 
                     table.insert(characters, character)
 
-                    charactersSeen[name] = true;
+                    charactersSeen[character.name] = true;
 
                     characterCount = characterCount + 1;
 
-                    if not races[race] then
-                        races[race] = 1;
+                    if not races[character.race] then
+                        races[character.race] = 1;
                     else
-                        races[race] = races[race] + 1;
+                        races[character.race] = races[character.race] + 1;
                     end
 
-                    if not classes[class] then
-                        classes[class] = 1;
+                    if not classes[character.class] then
+                        classes[character.class] = 1;
                     else
-                        classes[class] = classes[class] + 1;
+                        classes[character.class] = classes[character.class] + 1;
                     end
 
-                    local level = tostring(level)
+                    local level = tostring(character.level)
                     if not levels[level] then
                         levels[level] = 1;
                     else
                         levels[level] = levels[level] + 1;
                     end
 
-                    if not guildsSeen[guild] then
-                        guildsSeen[guild] = true;
+                    if not guildsSeen[character.guild] then
+                        guildsSeen[character.guild] = true;
                         table.insert(guilds, {
-                            name = guild,
+                            name = character.guild,
                             count = 1,
                             xp = xp
                         })
                     else
                         for k, v in ipairs(guilds) do
-                            if v.name == guild then
+                            if v.name == character.guild then
                                 v.count = v.count + 1;
                                 v.xp = v.xp + xp
                             end

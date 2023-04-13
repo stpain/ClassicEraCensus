@@ -27,6 +27,7 @@ addon.locales.enUS = {
     warlock = "Warlock",
 
     --use capital for rest of the locales
+    DASHBOARD = "Dashboard",
     TABS_SCAN = "Scan", 
     TABS_CENSUS_LOG = "Log",
     TABS_CENSUS = "Census",

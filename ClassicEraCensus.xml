@@ -463,11 +463,28 @@
                                     <Color r="1" g="1" b="1"/>
                                     <Anchors>
                                         <Anchor point="TOPLEFT" x="8" y="-2"/>
-                                        <Anchor point="BOTTOMRIGHT" x="-8" y="2"/>
+                                        <Anchor point="TOPRIGHT" x="-8" y="-2"/>
                                     </Anchors>
                                 </FontString>
                             </Layer>
                         </Layers>
+                        <Frames>
+                            <Button parentKey="exportCensus" inherits="UIPanelButtonTemplate" text="Export">
+                                <Size x="100" y="20"/>
+                                <Anchors>
+                                    <Anchor point="BOTTOM" x="0" y="0"/>
+                                </Anchors>
+                            </Button>
+                            <ScrollFrame parentKey="export" inherits="InputScrollFrameTemplate" autoFocus="false" multiline="true">
+                                <KeyValue key="maxLetters" value="9999999" type="number"/>
+                                <KeyValue key="hideCharCount" value="false" type="boolean"/>
+                                <Anchors>
+                                    <Anchor point="TOP" relativeKey="$parent.text" relativePoint="BOTTOM" y="-6"/>
+                                    <Anchor point="BOTTOMLEFT" x="6" y="2"/>
+                                    <Anchor point="BOTTOMRIGHT" x="-6" y="2"/>
+                                </Anchors>
+                            </ScrollFrame>
+                        </Frames>
                     </Frame>
                 </Frames>
             </Frame>

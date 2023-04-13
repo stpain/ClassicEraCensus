@@ -121,7 +121,6 @@ end
 
 function Database:CreateMerge(censusGroup, name)
 
-
     if #censusGroup == 0 then
         return
     end
@@ -133,7 +132,8 @@ function Database:CreateMerge(censusGroup, name)
         faction = censusGroup[1].faction,
         characters = {},
         timestamp = time(),
-        merged = true,
+        isMerged = true,
+        isCoop = false,
         meta = {},
     }
     
@@ -153,7 +153,8 @@ function Database:CreateMerge(censusGroup, name)
 
     local charactersSeen = {}
     for k, v in ipairs(t) do
-        local name = self:GetCharacterInfo(v.character, "name")
+        --local name = self:GetCharacterInfo(v.character, "name")
+        local name = v.character.name
         if not charactersSeen[name] then
             charactersSeen[name] = v.timestamp
             table.insert(merge.characters, v.character)
@@ -162,8 +163,8 @@ function Database:CreateMerge(censusGroup, name)
 
             if v.timestamp > charactersSeen[name] then
                 for k, x in ipairs(merge.characters) do
-                    local _name = self:GetCharacterInfo(x, "name")
-                    if _name == name then
+                    --local _name = self:GetCharacterInfo(x, "name")
+                    if x.name == name then
                         x = v.character;
                     end
                 end
@@ -172,6 +173,13 @@ function Database:CreateMerge(censusGroup, name)
     end
 
     self:InsertCensus(merge)
+end
+
+function Database:GetLatestCensus()
+    if self.db then
+        return self.db.census[1];
+    end
+    return {};
 end
 
 function Database:FetchAllCensus()

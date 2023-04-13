@@ -139,7 +139,7 @@ ClassicEraCensusCensusHistoryListviewItemMixin = {}
 function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, height)
     self:SetHeight(height)
 
-    if binding.merged == true then
+    if binding.isMerged == true then
 
         self.text:SetText(string.format("%s %s", CreateAtlasMarkup("poi-workorders", 16, 16), date('%Y-%m-%d %H:%M:%S', binding.timestamp))) --poi-alliance
 

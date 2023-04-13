@@ -355,20 +355,20 @@ end
 
 function Census:CreateRecord()
 
-    local characters = {}
+    -- local characters = {}
 
-    for k, character in ipairs(self.characters) do
+    -- for k, character in ipairs(self.characters) do
 
-        --make a comma seperated string of character data
-        --name level gender race class guild
-        table.insert(characters, string.format("%s,%s,%s,%s,%s",
-            character.name,
-            character.level,
-            character.race,
-            character.class,
-            character.guild
-        ))
-    end
+    --     --make a comma seperated string of character data
+    --     --name level gender race class guild
+    --     table.insert(characters, string.format("%s,%s,%s,%s,%s",
+    --         character.name,
+    --         character.level,
+    --         character.race,
+    --         character.class,
+    --         character.guild
+    --     ))
+    -- end
     
     return {
         author = self.meta.author,
@@ -376,8 +376,10 @@ function Census:CreateRecord()
         realm = self.meta.realm,
         region = self.meta.region,
         faction = self.meta.faction,
-        characters = characters,
+        characters = self.characters,
         customFilters = self.meta.customFilters,
+        isCoop = self.meta.isCoop,
+        isMerged = false,
     }
 
 end
@@ -558,15 +560,22 @@ function Census:GenerateWhoQueries(faction, raceT, classT, levelRange)
 end
 
 function Census:NewCoopCensus(request)
+
+    local name, realm = UnitFullName("player");
+    if realm == nil or realm == "" then
+        realm = GetNormalizedRealmName();
+    end
     
     return Mixin({
         meta = {
+            requestAuthor = string.format("%s-%s", request.author, request.realm),
             timestamp = time(),
-            author = string.format("%s-%s", request.author, request.realm),
+            author = string.format("%s-%s", name, realm),
             realm = request.realm,
             region = request.region,
             faction = request.faction,
             customFilters = request.customFilters,
+            isCoop = true,
         },
         currentQueryIndex = 1,
         currentLevelRange = 60,
@@ -591,6 +600,7 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
             region = region,
             faction = faction,
             customFilters = customFilters,
+            isCoop = false,
         },
         currentQueryIndex = 1,
         currentLevelRange = 60,
