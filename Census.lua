@@ -2,9 +2,15 @@
 
 local name, addon = ...;
 
+local Database = addon.db;
+
+local EXPANSION = GetServerExpansionLevel()
+
 local locale = GetLocale()
 
 local Census = {}
+
+Census.version = tonumber(GetAddOnMetadata(name, "Version"));
 
 Census.factions = {
     Alliance = {
@@ -66,91 +72,6 @@ Census.factions = {
             "priest",
         },
     },
-}
-
-Census.zones = {
-    [[Ahn'Qiraj]],
-    [[Alterac Mountains]],
-    [[Alterac Valley]],
-    [[Arathi Basin]],
-    [[Arathi Highlands]],
-    [[Ashenvale]],
-    [[Azshara]],
-    [[Badlands]],
-    [[Blackfathom Deeps]],
-    [[Blackrock Depths]],
-    [[Blackrock Mountain]],
-    [[Blackrock Spire]],
-    [[Blackwing Lair]],
-    [[Blasted Lands]],
-    [[Burning Steppes]],
-    [[Caverns of Time]],
-    [[Darkshore]],
-    [[Darnassus]],
-    [[Deadwind Pass]],
-    [[Deeprun Tram]],
-    [[Desolace]],
-    [[Dire Maul]],
-    [[Dun Morogh]],
-    [[Durotar]],
-    [[Duskwood]],
-    [[Dustwallow Marsh]],
-    [[Eastern Plaguelands]],
-    [[Elwynn Forest]],
-    [[Emerald Forest]],
-    [[Felwood]],
-    [[Feralas]],
-    [[Gnomeregan]],
-    [[Hillsbrad Foothills]],
-    [[Ironforge]],
-    [[Loch Modan]],
-    [[Maraudon]],
-    [[Molten Core]],
-    [[Moonglade]],
-    [[Mulgore]],
-    [[Naxxramas]],
-    [[Onyxia's Lair]],
-    [[Orgrimmar]],
-    [[Ragefire Chasm]],
-    [[Razorfen Downs]],
-    [[Razorfen Kraul]],
-    [[Redridge Mountains]],
-    [[Ruins of Ahn'Qiraj]],
-    [[Scarlet Monastery]],
-    [[Scholomance]],
-    [[Searing Gorge]],
-    [[Shadowfang Keep]],
-    [[Silithus]],
-    [[Silverpine Forest]],
-    [[Stonetalon Mountains]],
-    [[Stormwind City]],
-    [[Stranglethorn Vale]],
-    [[Stratholme]],
-    [[Sunken Temple]],
-    [[Swamp of Sorrows]],
-    [[Tanaris]],
-    [[Teldrassil]],
-    [[The Barrens]],
-    [[The Deadmines]],
-    [[The Great Sea]],
-    [[The Hinterlands]],
-    [[The Stockade]],
-    [[The Temple of Atal'Hakkar]],
-    [[The Veiled Sea]],
-    [[Thousand Needles]],
-    [[Thunder Bluff]],
-    [[Tirisfal Glades]],
-    [[Uldaman]],
-    [[Un'Goro Crater]],
-    [[Undercity]],
-    [[Wailing Caverns]],
-    [[Warsong Gulch]],
-    [[Western Plaguelands]],
-    [[Westfall]],
-    [[Wetlands]],
-    [[Winterspring]],
-    [[Zul'Farrak]],
-    [[Zul'Gurub]],
 }
 
 Census.levelRanges20 = {
@@ -355,21 +276,6 @@ end
 
 function Census:CreateRecord()
 
-    -- local characters = {}
-
-    -- for k, character in ipairs(self.characters) do
-
-    --     --make a comma seperated string of character data
-    --     --name level gender race class guild
-    --     table.insert(characters, string.format("%s,%s,%s,%s,%s",
-    --         character.name,
-    --         character.level,
-    --         character.race,
-    --         character.class,
-    --         character.guild
-    --     ))
-    -- end
-    
     return {
         author = self.meta.author,
         timestamp = self.meta.timestamp,
@@ -378,8 +284,8 @@ function Census:CreateRecord()
         faction = self.meta.faction,
         characters = self.characters,
         customFilters = self.meta.customFilters,
-        isCoop = self.meta.isCoop,
-        isMerged = false,
+        locale = locale,
+        version = self.version,
     }
 
 end
@@ -406,7 +312,7 @@ function Census:ProcessWhoResults()
         end
 
         if character.fullGuildName == "" then
-            character.fullGuildName = ">< No Guild ><"
+            character.fullGuildName = "-No-Guild-"
         end
 
         if not self.charactersSeen[character.fullName] then
@@ -414,7 +320,7 @@ function Census:ProcessWhoResults()
                 race = character.raceStr,
                 class = character.filename,
                 guild = character.fullGuildName,
-                gender = character.gender == 2 and "male" or "female",
+                gender = character.gender,
                 level = character.level,
                 name = character.fullName,
             })
@@ -427,7 +333,7 @@ function Census:ProcessWhoResults()
                         race = character.raceStr,
                         class = character.filename,
                         guild = character.fullGuildName or " - ",
-                        gender = character.gender == 2 and "male" or "female",
+                        gender = character.gender,
                         level = character.level,
                         name = character.fullName,
                     }
@@ -565,6 +471,8 @@ function Census:NewCoopCensus(request)
     if realm == nil or realm == "" then
         realm = GetNormalizedRealmName();
     end
+
+    local zones = self:CreateZoneList(request.ignoredZones);
     
     return Mixin({
         meta = {
@@ -575,7 +483,6 @@ function Census:NewCoopCensus(request)
             region = request.region,
             faction = request.faction,
             customFilters = request.customFilters,
-            isCoop = true,
         },
         currentQueryIndex = 1,
         currentLevelRange = 60,
@@ -584,6 +491,7 @@ function Census:NewCoopCensus(request)
         characters = {},
         previousWhoAttemptTime = time(),
         previousQuery = nil,
+        zones = zones,
     }, self)
 
 end
@@ -591,6 +499,8 @@ end
 function Census:New(author, realm, faction, region, raceT, classT, levelRange)
 
     local whoQueries, customFilters = self:GenerateWhoQueries(faction, raceT, classT, levelRange)
+
+    local zones = self:CreateZoneList();
 
     return Mixin({
         meta = {
@@ -600,7 +510,6 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
             region = region,
             faction = faction,
             customFilters = customFilters,
-            isCoop = false,
         },
         currentQueryIndex = 1,
         currentLevelRange = 60,
@@ -609,8 +518,43 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
         characters = {},
         previousWhoAttemptTime = time(),
         previousQuery = nil,
+        zones = zones,
     }, self)
 
+end
+
+
+function Census:CreateZoneList(ids)
+
+    local zones = {}
+
+    if type(ids) == "table" then
+        
+        for k, zone in ipairs(addon.zones[EXPANSION]) do
+            local ignored = false
+            for _, id in ipairs(ids) do
+                if k == id then
+                    ignored = true
+                end
+            end
+            if ignored == false then
+                table.insert(zones, zone)
+            end
+        end
+    
+    else
+        for k, zone in ipairs(addon.zones[EXPANSION]) do
+        
+            local ignored = Database:GetConfig(zone, "ignoredZones");
+            if ignored == true then
+                --it could be false or nil so only act if its true
+            else
+                table.insert(zones, zone)
+            end
+        end
+    end
+
+    return zones;
 end
 
 

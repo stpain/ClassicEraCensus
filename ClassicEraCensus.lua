@@ -1,7 +1,7 @@
 
 
 local addonName, ClassicEraCensus = ...;
-
+local json = LibStub('JsonLua-1.0');
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local LibSerialize = LibStub:GetLibrary("LibSerialize")
 
@@ -12,7 +12,7 @@ local Comms = ClassicEraCensus.Comms;
 local Database = ClassicEraCensus.db;
 local Census = ClassicEraCensus.Census;
 
-local EXPANSION = "classic"
+local EXPANSION = GetServerExpansionLevel()
 
 --if this goes beyond Era then this variable needs to be adjusted, either via blizz api or some config setting
 local MAX_LEVEL = 60;
@@ -25,6 +25,9 @@ ClassicEraCensusMixin = {
     isCoopCensus = false,
     censusGroup = {},
     regions = {"EU", "NA", "KR", "TW", "Other"},
+
+
+    --need to update for different expansion
     classesOrdered = {
         alliance = {
             "druid",
@@ -91,6 +94,7 @@ function ClassicEraCensusMixin:OnLoad()
     self.tab1:SetText(L.DASHBOARD)
     self.tab2:SetText(OPTIONS)
     self.tab3:SetText(L.TABS_CENSUS_LOG)
+    self.tab4:SetText(L.TABS_EXPORT)
 
     PanelTemplates_SetNumTabs(self, self.numTabs);
     PanelTemplates_SetTab(self, 1);
@@ -111,6 +115,9 @@ function ClassicEraCensusMixin:OnLoad()
         end
         
         for k, tip in ipairs(self.options.customCensus.helptips) do
+            tip:SetShown(self.helpTipsShown)
+        end
+        for k, tip in ipairs(self.options.helptips) do
             tip:SetShown(self.helpTipsShown)
         end
 
@@ -214,7 +221,6 @@ function ClassicEraCensusMixin:Database_OnInitialised()
         type = "launcher",
         icon = 134939,
         OnClick = function(_, button)
-            print(button)
             self:SetShown(not self:IsVisible())
         end,
         OnEnter = function(self)
@@ -269,6 +275,7 @@ function ClassicEraCensusMixin:SetupOptionsTab()
 
     self.options.customCensus.coopCensusHelptip:SetText(L.CUSTOM_CENSUS_COOP_HELPTIP)
     self.options.customCensus.customCensusFiltersHelptip:SetText(L.CUSTOM_CENSUS_FILTERS_HELPTIP)
+    self.options.customCensusIgnoredZonesHelptip:SetText(L.CUSTOM_CENSUS_IGNORED_ZONES_HELPTIP)
     self.options.helpAbout.text:SetText(L.HELP_ABOUT)
 
     local gender = UnitSex("player") == 2 and "male" or "female";
@@ -335,6 +342,15 @@ function ClassicEraCensusMixin:SetupOptionsTab()
         return (raceFiltered == true and races or nil), (classFiltered == true and classes or nil), string.format("%s-%s", minL, maxL)
     end
 
+
+    for k, zone in ipairs(ClassicEraCensus.zones[EXPANSION]) do
+        self.options.zoneListview.DataProvider:Insert({
+            zone = zone,
+        })
+    end
+
+
+
     self.options.customCensus.startCensus:SetScript("OnClick", function()
 
         local name, realm = UnitFullName("player");
@@ -375,6 +391,16 @@ function ClassicEraCensusMixin:SetupOptionsTab()
 
         local whoQueries, customFilters = Census:GenerateWhoQueries(faction, races, classes, levelRange)
 
+        local ignoredZones = {}
+        for k, zone in ipairs(ClassicEraCensus.zones[EXPANSION]) do
+        
+            local ignored = Database:GetConfig(zone, "ignoredZones");
+            if ignored == true then
+                table.insert(ignoredZones, k)
+            end
+
+        end
+
         local msg = {
             type = "COOP_CENSUS_REQUEST",
             payload = {
@@ -384,28 +410,42 @@ function ClassicEraCensusMixin:SetupOptionsTab()
                 region = region,
                 whoQueries = whoQueries,
                 customFilters = customFilters,
+                ignoredZones = ignoredZones,
             }
         }
 
         Comms:SendCoopCensus(msg, playerName)
     end)
 
-    self.options.helpAbout.export.EditBox:SetMaxLetters(1000000000)
-    self.options.helpAbout.exportCensus:SetScript("OnClick", function()
 
-        local census = Database:GetLatestCensus()
 
-        if not census then
-            census = self.censusGroup
+
+
+
+
+
+    --this is actually now in a new container/tab
+    self.export.exportLabel:SetText(L.EXPORT_INFO)
+    self.export.exportJSON.EditBox:SetMaxLetters(1000000000)
+    self.export.generateJSON:SetScript("OnClick", function()
+
+         local censusData;
+        if #self.censusGroup == 0 then
+            local census = Database:GetLatestCensus()
+            censusData = {
+                census,
+            }
+        else
+            censusData = self.censusGroup;
         end
     
-        local serialized = LibSerialize:Serialize(census)
-        local compressed = LibDeflate:CompressDeflate(serialized)
-        local encoded = LibDeflate:EncodeForPrint(compressed)
+        -- local serialized = LibSerialize:Serialize(census)
+        -- local compressed = LibDeflate:CompressDeflate(serialized)
+        -- local encoded = LibDeflate:EncodeForPrint(compressed)
 
-        print(encoded)
+        local encoded = json.encode(censusData)
 
-        self.options.helpAbout.export.EditBox:SetText(encoded)
+        self.export.exportJSON.EditBox:SetText(encoded)
 
     end)
 end
@@ -587,10 +627,13 @@ function ClassicEraCensusMixin:CensusLevelRange_OnChanged()
 end
 
 --this is called when the db table 'census' changes (census added or removed)
-function ClassicEraCensusMixin:Database_OnCensusTableChanged()
+function ClassicEraCensusMixin:Database_OnCensusTableChanged(clearCensusGroup)
 
     self:ClearAllFilters()
     self:ResetHomeCharts()
+    if clearCensusGroup then
+        self.censusGroup = {}
+    end
     
     local allCensus = Database:FetchAllCensus()
 
@@ -614,7 +657,9 @@ function ClassicEraCensusMixin:Census_OnGuildSelectionChanged(guild)
 end
 
 --handle census selection(s)
-function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
+function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census, listviewItem)
+
+    --DevTools_Dump({listviewItem})
 
     if #self.censusGroup == 0 then
         table.insert(self.censusGroup, census)
@@ -636,10 +681,12 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census)
         end
         if realmCheck == false then
             print("Census is from a different realm!")
+            listviewItem.background:Hide()
             return;
         end
         if factionCheck == false then
             print("Census is from a different faction!")
+            listviewItem.background:Hide()
             return;
         end
         if census.selected == true and exists == false then

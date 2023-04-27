@@ -1,7 +1,7 @@
 
 
 local name, addon = ...;
-
+local Database = addon.db;
 
 ClassicEraCensusHelpTipMixin = {};
 function ClassicEraCensusHelpTipMixin:SetText(text)
@@ -134,6 +134,39 @@ function ClassicEraCensusLogListviewItemMixin:ResetDataBinding()
     
 end
 
+
+
+ClassicEraCensusZoneListviewItemMixin = {}
+function ClassicEraCensusZoneListviewItemMixin:SetDataBinding(binding, height)
+    self:SetHeight(height)
+    self.text:SetText(binding.zone)
+
+    self.zone = binding.zone;
+
+    self:SetScript("OnMouseDown", function()
+        local ignored = Database:GetConfig(binding.zone, "ignoredZones")
+        Database:SetConfig(binding.zone, not ignored, "ignoredZones")
+    end)
+
+    local ignored = Database:GetConfig(binding.zone, "ignoredZones")
+    self:UpdateIgnoreState(binding.zone, ignored, "ignoredZones")
+
+    addon:RegisterCallback("Database_OnConfigChanged", self.UpdateIgnoreState, self)
+end
+function ClassicEraCensusZoneListviewItemMixin:ResetDataBinding()
+    
+end
+function ClassicEraCensusZoneListviewItemMixin:UpdateIgnoreState(key, val, t)
+    if t == "ignoredZones" and key == self.zone then
+        if val == true then
+            self.text:SetText(string.format("%s%s", "|cff666666", self.zone))
+        else
+            self.text:SetText(string.format("%s%s", "|cffffffff", self.zone))
+        end
+    end
+end
+
+
 ClassicEraCensusCensusHistoryListviewItemMixin = {}
 
 function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, height)
@@ -195,7 +228,7 @@ function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, 
             else
                 self.background:Hide()
             end
-            addon:TriggerEvent("Census_OnMultiSelectChanged", binding)
+            addon:TriggerEvent("Census_OnMultiSelectChanged", binding, self)
 
         else
 

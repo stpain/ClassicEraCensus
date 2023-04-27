@@ -44,27 +44,79 @@ function Database:Init()
 end
 
 function Database:CleanCensusTables()
+    local symbols = '["<>/@?$&"]'
     if self.db then
-        for k, census in ipairs(self.db.census) do
+        local keys = {}
+        for censusIndex, census in ipairs(self.db.census) do
+            local isDirty = false;
             if census.selected then
                 census.selected = nil;
+            end
+
+            for k, v in pairs(census) do
+                if(k:match(symbols)) then
+                    isDirty = true;
+                end
+                if type(v) == "string" then
+                    if(v:match(symbols)) then
+                        isDirty = true;
+                    end
+                end
+            end
+            for _, character in ipairs(census.characters) do
+                for k, v in pairs(character) do
+                    if(k:match(symbols)) then
+                        isDirty = true;
+                    end
+                    if type(v) == "string" then
+                        if(v:match(symbols)) then
+                            isDirty = true;
+                        end
+                    end
+                end
+            end
+            if isDirty == true then
+                table.insert(keys, { index = censusIndex })
+            end
+        end
+        if #keys > 0 then
+            table.sort(keys, function(a, b)
+                return a.index > b.index;
+            end)
+            for k, v in ipairs(keys) do
+                table.remove(self.db.census, v.index)
             end
         end
     end
     addon:TriggerEvent("Database_OnCensusTableChanged")
 end
 
-function Database:SetConfig(key, val)
+function Database:SetConfig(key, val, t)
+    if t then
+        if not self.db.config[t] then
+            self.db.config[t] = {}
+            self.db.config[t][key] = val;
+
+        else
+            self.db.config[t][key] = val;
+
+        end
+    end
     if self.db and self.db.config then
         self.db.config[key] = val;
     end
-    addon:TriggerEvent("Database_OnConfigChanged", key, val)
+    addon:TriggerEvent("Database_OnConfigChanged", key, val, t)
 end
 
-function Database:GetConfig(key)
-    if self.db and self.db.config then
+function Database:GetConfig(key, t)
+    if t then
+        if self.db.config[t] then
+            return self.db.config[t][key];
+        end
+    else
         return self.db.config[key];
     end
+
 end
 
 function Database:SaveTempData(key, val)
@@ -102,7 +154,7 @@ function Database:DeleteCensus(censusGroup)
             end
         end
     end
-    addon:TriggerEvent("Database_OnCensusTableChanged")
+    addon:TriggerEvent("Database_OnCensusTableChanged", true) --true means census group was removed so clear it
 end
 
 function Database:GetCharacterInfo(character, info)
@@ -133,16 +185,9 @@ function Database:CreateMerge(censusGroup, name)
         characters = {},
         timestamp = time(),
         isMerged = true,
-        isCoop = false,
-        meta = {},
     }
     
     for k, census in ipairs(censusGroup) do
-        table.insert(merge.meta, {
-            author = census.author,
-            timestamp = census.timestamp,
-            merged = census.merged,
-        })
         for j, character in ipairs(census.characters) do
             table.insert(t, {
                 character = character,
@@ -161,9 +206,9 @@ function Database:CreateMerge(censusGroup, name)
 
         else
 
+            --this is a newer record so update
             if v.timestamp > charactersSeen[name] then
                 for k, x in ipairs(merge.characters) do
-                    --local _name = self:GetCharacterInfo(x, "name")
                     if x.name == name then
                         x = v.character;
                     end

@@ -101,6 +101,11 @@
                     <Anchor point="LEFT" relativeKey="$parent.tab2" relativePoint="RIGHT" x="-16" y="0"/>
                 </Anchors>
             </Button>
+            <Button name="$parentTab4" parentKey="tab4" parentArray="tabs" inherits="CharacterFrameTabButtonTemplate" id="4">
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.tab3" relativePoint="RIGHT" x="-16" y="0"/>
+                </Anchors>
+            </Button>
 
             <Frame parentKey="home" parentArray="containers" hidden="false">
 
@@ -450,7 +455,38 @@
 
                         </Frames>
                     </Frame>
-                    <Frame parentKey="helpAbout" inherits="InsetFrameTemplate">
+
+                    <Frame parentKey="zoneListview" inherits="ClassicEraCensusListviewTemplate">
+                        <Anchors>
+                            <Anchor point="TOPRIGHT" x="0" y="0"/>
+                            <Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+                            <Anchor point="LEFT" relativeKey="$parent.customCensus" relativePoint="RIGHT" x="0" y="0"/>
+                        </Anchors>
+                        <KeyValues>
+                            <KeyValue key="itemTemplate" value="ClassicEraCensusZoneListviewItemTemplate" type="string"/>
+                            <KeyValue key="elementHeight" value="16" type="number"/>
+                        </KeyValues>
+                        <Layers>
+                            <Layer level="OVERLAY">
+                                <FontString parentKey="header" inherits="GameFontNormal" text="Global Ignore Zones">
+                                    <Size y="24"/>
+                                    <Color r="1" g="1" b="1"/>
+                                    <Anchors>
+                                        <Anchor point="TOP" x="0" y="22"/>
+                                    </Anchors>
+                                </FontString>
+                            </Layer>
+                        </Layers>
+                    </Frame>
+
+                    <Frame parentKey="customCensusIgnoredZonesHelptip" parentArray="helptips" inherits="ClassicEraCensusHelpTipTemplate_BottomArrow" hidden="true">
+                        <Size x="320" y="180"/>
+                        <Anchors>
+                            <Anchor point="BOTTOM" relativeKey="$parent.zoneListview" relativePoint="TOP" x="-20" y="-50"/>
+                        </Anchors>
+                    </Frame>
+
+                    <Frame parentKey="helpAbout" inherits="InsetFrameTemplate" hidden="true">
                         <Anchors>
                             <Anchor point="TOPLEFT" relativeKey="$parent.customCensus" relativePoint="TOPRIGHT" x="0" y="0"/>
                             <Anchor point="BOTTOMLEFT" relativeKey="$parent.customCensus" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
@@ -468,23 +504,6 @@
                                 </FontString>
                             </Layer>
                         </Layers>
-                        <Frames>
-                            <Button parentKey="exportCensus" inherits="UIPanelButtonTemplate" text="Export">
-                                <Size x="100" y="20"/>
-                                <Anchors>
-                                    <Anchor point="BOTTOM" x="0" y="0"/>
-                                </Anchors>
-                            </Button>
-                            <ScrollFrame parentKey="export" inherits="InputScrollFrameTemplate" autoFocus="false" multiline="true">
-                                <KeyValue key="maxLetters" value="9999999" type="number"/>
-                                <KeyValue key="hideCharCount" value="false" type="boolean"/>
-                                <Anchors>
-                                    <Anchor point="TOP" relativeKey="$parent.text" relativePoint="BOTTOM" y="-6"/>
-                                    <Anchor point="BOTTOMLEFT" x="6" y="2"/>
-                                    <Anchor point="BOTTOMRIGHT" x="-6" y="2"/>
-                                </Anchors>
-                            </ScrollFrame>
-                        </Frames>
                     </Frame>
                 </Frames>
             </Frame>
@@ -508,6 +527,46 @@
                         </KeyValues>
                     </Frame>
                 </Frames>
+            </Frame>
+
+            
+            <Frame parentKey="export" parentArray="containers" hidden="true">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="6" y="-60"/>
+                    <Anchor point="BOTTOMRIGHT" x="-6" y="6"/>
+                </Anchors>
+
+                <Frames>
+                    <Button parentKey="generateJSON" inherits="UIPanelButtonTemplate" text="Export">
+                        <Size x="100" y="20"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="0" y="0"/>
+                        </Anchors>
+                    </Button>
+                    <ScrollFrame parentKey="exportJSON" inherits="InputScrollFrameTemplate" autoFocus="false" multiline="true">
+                        <KeyValue key="maxLetters" value="9999999" type="number"/>
+                        <KeyValue key="hideCharCount" value="false" type="boolean"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.generateJSON" relativePoint="BOTTOMLEFT" y="-36"/>
+                            <Anchor point="BOTTOMLEFT" x="6" y="2"/>
+                            <Anchor point="BOTTOMRIGHT" x="-6" y="2"/>
+                        </Anchors>
+                    </ScrollFrame>
+                </Frames>
+
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <FontString parentKey="exportLabel" inherits="GameFontNormal">
+                            <Size y="26"/>
+                            <Color r="1" g="1" b="1"/>
+                            <Anchors>
+                                <Anchor point="BOTTOMLEFT" relativeKey="$parent.exportJSON" relativePoint="TOPLEFT" y="2"/>
+                                <Anchor point="BOTTOMRIGHT" relativeKey="$parent.exportJSON" relativePoint="TOPRIGHT" y="2"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+
             </Frame>
 
         </Frames>

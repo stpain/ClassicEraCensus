@@ -2,10 +2,13 @@
 
 local addonName, addon = ...;
 
+local locale = GetLocale()
+local L = addon.locales[locale];
+
 local Database = addon.db;
 
 StaticPopupDialogs["ClassicEraCensusMergeConfirm"] = {
-    text = "Do you want to merge these census records?",
+    text = L.POPUP_MERGE_CENSUS,
     button1 = YES,
     button2 = NO,
     OnShow = function(self)
