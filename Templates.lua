@@ -128,6 +128,13 @@ ClassicEraCensusLogListviewItemMixin = {
 }
 function ClassicEraCensusLogListviewItemMixin:SetDataBinding(binding, height)
     self:SetHeight(height)
+
+    --hacked
+    -- if binding.who then
+        
+    -- else
+
+    -- end
     self.text:SetText(string.format("%s%s", self.types[binding.type], binding.message))
 end
 function ClassicEraCensusLogListviewItemMixin:ResetDataBinding()

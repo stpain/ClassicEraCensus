@@ -137,7 +137,10 @@ function ClassicEraCensusMixin:OnLoad()
                 FriendsFrame:UnregisterEvent("WHO_LIST_UPDATE")
                 self:RegisterEvent("WHO_LIST_UPDATE")
                 C_FriendList.SetWhoToUi(true)
-                self.currentCensus:AttemptNextWhoQuery()
+                local sent = self.currentCensus:AttemptNextWhoQuery()
+                if sent then
+                    self.whoCooldownStart = time()
+                end
             end
         end)
     end
@@ -155,6 +158,12 @@ end
 --need to finish the Census object so it can return census progress data to be used in here
 function ClassicEraCensusMixin:OnUpdate()
     if self.isCensusInProgress then
+
+        -- if self.whoCooldownStart then
+        --     local whoCooldown = (3 - (time() - self.whoCooldownStart)) or 3;
+        --     self.whoCooldown:SetValue((whoCooldown / 3) * 100)
+        -- end
+
         local progress = self.currentCensus:GetProgress()
         self.home.censusInfoText:SetText(string.format("Scan time: %s Recorded %d characters, processed %d of %d queries", SecondsToClock(progress.elapsed), progress.characterCount, progress.currentIndex, progress.numQueries))
     end
@@ -191,11 +200,22 @@ end
 
 --function used to log messages from the census
 function ClassicEraCensusMixin:Census_LogMessage(type, msg)
-    self.log.listview.DataProvider:Insert({
+    self.log.whoListview.DataProvider:Insert({
         type = type,
         message = msg,
     })
-    self.log.listview.scrollBox:ScrollToEnd()
+    self.log.whoListview.scrollBox:ScrollToEnd()
+
+
+    --slight hack for debugging reason
+    -- self.log.queryListview.DataProvider:Flush();
+    -- for k, v in ipairs(self.currentCensus.whoQueries) do
+    --     self.log.queryListview.DataProvider:Insert({
+    --         type = "info",
+    --         message = v.who,
+    --     })
+    -- end
+    --self.log.queryListview.scrollBox:ScrollToEnd()
 end
 
 --get data from the character string

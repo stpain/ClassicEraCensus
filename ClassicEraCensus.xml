@@ -37,6 +37,29 @@
         </Anchors>
         
         <Frames>
+<!-- 
+            <StatusBar parentKey="whoCooldown" useParentLevel="true" minValue="0" maxValue="100" defaultValue="100" orientation="HORIZONTAL">
+                <Size y="36"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"  x="50" y="-20"/>
+                    <Anchor point="TOPRIGHT" x="-2" y="-20"/>
+                </Anchors>
+                <BarTexture file="Interface\TargetingFrame\UI-StatusBar"/>
+                <BarColor r="0.0" g="1.0" b="0.0" a="0.9"/>
+
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <FontString parentKey="text" inherits="GameFontNormal">
+                            <Color r="1" g="1" b="1"/>
+                            <Size x="180" y="17"/>
+                            <Anchors>
+                                <Anchor point="CENTER" x="0" y="0"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+
+            </StatusBar> -->
 
             <Button parentKey="help">
                 <Size x="18" y="18"/>
@@ -515,11 +538,22 @@
                 </Anchors>
 
                 <Frames>
-                    <Frame parentKey="listview" inherits="ClassicEraCensusListviewTemplate">
+                    <Frame parentKey="whoListview" inherits="ClassicEraCensusListviewTemplate">
                         <Size x="500"/>
                         <Anchors>
                             <Anchor point="TOPLEFT" x="0" y="0"/>
+                            <Anchor point="BOTTOMLEFT" x="0" y="0"/>
+                        </Anchors>
+                        <KeyValues>
+                            <KeyValue key="itemTemplate" value="ClassicEraCensusLogListviewItemTemplate" type="string"/>
+                            <KeyValue key="elementHeight" value="16" type="number"/>
+                        </KeyValues>
+                    </Frame>
+                    <Frame parentKey="queryListview" inherits="ClassicEraCensusListviewTemplate">
+                        <Anchors>
+                            <Anchor point="TOPRIGHT" x="0" y="0"/>
                             <Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+                            <Anchor point="LEFT" relativeKey="$parent.whoListview" relativePoint="RIGHT" x="0" y="0"/>
                         </Anchors>
                         <KeyValues>
                             <KeyValue key="itemTemplate" value="ClassicEraCensusLogListviewItemTemplate" type="string"/>

@@ -118,18 +118,44 @@ for _, letter1 in ipairs(alphabet) do
     end
 end
 
+function Census:GetCharactersTotalXP(currentLevel)
+
+    local xp = 0;
+    if type(currentLevel) == "number" then
+        for i = 1, (currentLevel - 1) do
+            xp = xp + addon.levelXpValues[EXPANSION][i]
+        end
+    end
+    return xp;
+end
+
+--hacked to fix bug
+function Census:UpdateQueryLog()
+    if type(self.whoQueries) == "table" then
+        local log = ClassicEraCensusUI.log.queryListview;
+        log.DataProvider:Flush();
+        for k, v in ipairs(self.whoQueries) do
+            log.DataProvider:Insert({
+                type = "info",
+                message = string.format("[%d] %s", k, v.who),
+            })
+        end
+    end
+end
+
 --this function will inject who queries based on the current query, it increases the depth of the query until <50 results are returned
 function Census:RefineWhoParams()
 
-    addon:TriggerEvent("Census_LogMessage", "info", "RefineWhoParams")
-
-    local index = self.currentQueryIndex;
+    local index = 1-- self.currentQueryIndex;
     local query = self.whoQueries[index]
 
-    addon:TriggerEvent("Census_LogMessage", "who", query.who)
+    addon:TriggerEvent("Census_LogMessage", "who", string.format("current query: %s", query.who))
+    addon:TriggerEvent("Census_LogMessage", "warning", "removing current query as it returns 50+ results")
+    addon:TriggerEvent("Census_LogMessage", "warning", string.format("current level range is %d", self.currentLevelRange))
+    
 
     local rangeSet;
-    if query.minLevel ~= query.maxLevel then
+    --if query.minLevel ~= query.maxLevel then
 
         if self.currentLevelRange == 60 then
             rangeSet = self.levelRanges20;
@@ -148,12 +174,16 @@ function Census:RefineWhoParams()
             self.currentLevelRange = 1;
 
         end
-    end
+
+    --end
 
     addon:TriggerEvent("Census_LogMessage", "info", string.format("using level ranges %s", self.currentLevelRange))
 
+    self:UpdateQueryLog();
+
     table.remove(self.whoQueries, index)
-    addon:TriggerEvent("Census_LogMessage", "warning", "removing current who query as it returns 50+ results")
+
+    self:UpdateQueryLog();
 
     if rangeSet ~= nil then
         for _, range in ipairs(rangeSet) do
@@ -177,6 +207,8 @@ function Census:RefineWhoParams()
                 index = index + 1;
             end
         end
+
+        self:UpdateQueryLog();
 
     else
 
@@ -315,6 +347,8 @@ function Census:ProcessWhoResults()
             character.fullGuildName = "-No-Guild-"
         end
 
+        local xp = self:GetCharactersTotalXP(character.level);
+
         if not self.charactersSeen[character.fullName] then
             table.insert(self.characters, {
                 race = character.raceStr,
@@ -323,6 +357,7 @@ function Census:ProcessWhoResults()
                 gender = character.gender,
                 level = character.level,
                 name = character.fullName,
+                xp = xp,
             })
             self.charactersSeen[character.fullName] = true;
 
@@ -336,6 +371,7 @@ function Census:ProcessWhoResults()
                         gender = character.gender,
                         level = character.level,
                         name = character.fullName,
+                        xp = xp,
                     }
                 end
             end
@@ -343,9 +379,32 @@ function Census:ProcessWhoResults()
 
     end
 
-    self.currentLevelRange = 60;
+    table.insert(self.processedQueries, 1, self.whoQueries[1])
 
-    self.currentQueryIndex = self.currentQueryIndex + 1;
+    addon:TriggerEvent("Census_LogMessage", "info", string.format("current level range is %s", self.currentLevelRange))
+    if self.whoQueries[2] then
+        local currentWhoMinLevel = self.whoQueries[2].minLevel
+        local currentWhoMaxLevel = self.whoQueries[2].maxLevel
+        local rangeDiff = (currentWhoMaxLevel - currentWhoMinLevel)
+
+        local diffs = {
+            [19] = 60,
+            [9] = 20,
+            [4] = 10,
+            [1] = 5,
+        }
+
+        if diffs[rangeDiff] then
+            self.currentLevelRange = diffs[rangeDiff];
+        end
+    end
+    addon:TriggerEvent("Census_LogMessage", "info", string.format("new level range is %s", self.currentLevelRange))
+
+    table.remove(self.whoQueries, 1)
+
+    self:UpdateQueryLog();
+
+    self.currentQueryIndex = 1-- = self.currentQueryIndex + 1;
 
     if self.currentQueryIndex > #self.whoQueries then
         addon:TriggerEvent("Census_OnFinished")
@@ -354,7 +413,7 @@ end
 
 function Census:AttemptNextWhoQuery()
 
-    if time() > (self.previousWhoAttemptTime + 2) then
+    if time() > (self.previousWhoAttemptTime + 3) then
 
         --check if the previous query involved level ranges
         local query = self.whoQueries[self.currentQueryIndex]
@@ -364,6 +423,8 @@ function Census:AttemptNextWhoQuery()
         C_FriendList.SendWho(query.who)
 
         self.previousWhoAttemptTime = time()
+
+        return true;
     end
 end
 
@@ -492,6 +553,7 @@ function Census:NewCoopCensus(request)
         previousWhoAttemptTime = time(),
         previousQuery = nil,
         zones = zones,
+        processedQueries = {},
     }, self)
 
 end
@@ -499,6 +561,8 @@ end
 function Census:New(author, realm, faction, region, raceT, classT, levelRange)
 
     local whoQueries, customFilters = self:GenerateWhoQueries(faction, raceT, classT, levelRange)
+
+    self:UpdateQueryLog();
 
     local zones = self:CreateZoneList();
 
@@ -519,6 +583,7 @@ function Census:New(author, realm, faction, region, raceT, classT, levelRange)
         previousWhoAttemptTime = time(),
         previousQuery = nil,
         zones = zones,
+        processedQueries = {},
     }, self)
 
 end
