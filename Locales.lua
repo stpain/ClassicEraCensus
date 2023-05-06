@@ -56,6 +56,9 @@ records.
     CUSTOM_CENSUS_FILTERS_HELPTIP = "Select which races, classes or level range you want to include in a custom census.",
     CUSTOM_CENSUS_IGNORED_ZONES_HELPTIP = "Select which zones to ignore.\n\nThis is a GLOBAL setting and will only take effect IF the census being run needs to increase the /who search params (when the /who returns 50+ characters using the base filters).\n\nThis can help reduce the census run time by allowing you to ignore certain zones from being quiried.\n\nIgnored zones will be sent to your co-op partner(s) BUT the zones will not be saved in their addon and will only exist for the co-op request.",
 
+    LOG_ACTIONS_HEADER = "Actions",
+    LOG_JOBS_HEADER = "Jobs",
+
     HELP_ABOUT = "ClassicEraCensus is an addon that aims to collect population data for the WoW Classic Era servers.\n\nDue to the nature of conducting a census they can take a long time on high pop servers. To aid with this the addon allows multiple people to each conduct a smaller part of a census. The main organiser can then merge all the results to create a full census record.",
 
     POPUP_MERGE_CENSUS = "You should only merge Co-op census to create a full census\n\nOR\n\nMerge recent/concurrent daily census.\n\n-\n\nDo not merge census where there is a large time gap between them.",

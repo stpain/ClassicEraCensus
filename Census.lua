@@ -318,6 +318,7 @@ function Census:CreateRecord()
         customFilters = self.meta.customFilters,
         locale = locale,
         version = self.version,
+        expansion = 0,
     }
 
 end

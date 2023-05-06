@@ -145,6 +145,10 @@ function ClassicEraCensusMixin:OnLoad()
         end)
     end
 
+
+    self.log.whoListview.header:SetText(L.LOG_ACTIONS_HEADER);
+    self.log.queryListview.header:SetText(L.LOG_JOBS_HEADER);
+
 end
 
 --addon navigation
@@ -449,15 +453,12 @@ function ClassicEraCensusMixin:SetupOptionsTab()
     self.export.exportJSON.EditBox:SetMaxLetters(1000000000)
     self.export.generateJSON:SetScript("OnClick", function()
 
-         local censusData;
-        if #self.censusGroup == 0 then
-            local census = Database:GetLatestCensus()
-            censusData = {
-                census,
-            }
-        else
-            censusData = self.censusGroup;
-        end
+        --for now just grab the latest - i need to add a specific multi select listview to this tab view
+        local censusData;
+        local census = Database:GetLatestCensus()
+        censusData = {
+            census,
+        }
     
         -- local serialized = LibSerialize:Serialize(census)
         -- local compressed = LibDeflate:CompressDeflate(serialized)
@@ -677,7 +678,7 @@ function ClassicEraCensusMixin:Census_OnGuildSelectionChanged(guild)
 end
 
 --handle census selection(s)
-function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census, listviewItem)
+function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census, listviewItem, buttonClicked)
 
     --DevTools_Dump({listviewItem})
 
@@ -737,6 +738,22 @@ function ClassicEraCensusMixin:Census_OnMultiSelectChanged(census, listviewItem)
     else
         self.home.censusInfoText:SetText(string.format("Selected %d, %d unique characters", #self.censusGroup, count))
     end
+
+    -- if buttonClicked == "RightButton" then
+
+    --     local menu = {
+    --         {
+    --             text = DELETE,
+    --             isCheckable = false,
+    --             func = function()
+
+    --             end,
+    --         }
+    --     }
+        
+    --     EasyMenu(menu, self.dropdown, "cursor", -10, -10, "MENU", 2.0)
+
+    -- end
 
 end
 

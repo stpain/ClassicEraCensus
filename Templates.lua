@@ -228,18 +228,13 @@ function ClassicEraCensusCensusHistoryListviewItemMixin:SetDataBinding(binding, 
     end)
 
     self:SetScript("OnMouseDown", function(_, button)
-        if button == "LeftButton" then
-            binding.selected = not binding.selected
-            if binding.selected then
-                self.background:Show()
-            else
-                self.background:Hide()
-            end
-            addon:TriggerEvent("Census_OnMultiSelectChanged", binding, self)
-
+        binding.selected = not binding.selected
+        if binding.selected then
+            self.background:Show()
         else
-
+            self.background:Hide()
         end
+        addon:TriggerEvent("Census_OnMultiSelectChanged", binding, self, button)
     end)
 end
 
