@@ -124,18 +124,16 @@ ClassicEraCensusLogListviewItemMixin = {
         warning = "|cffc91A15",
         info = "|cff3EA958",
         who = "|cffffd700",
+        plain = "|cffffffff",
     }
 }
 function ClassicEraCensusLogListviewItemMixin:SetDataBinding(binding, height)
     self:SetHeight(height)
-
-    --hacked
-    -- if binding.who then
-        
-    -- else
-
-    -- end
-    self.text:SetText(string.format("%s%s", self.types[binding.type], binding.message))
+    if binding.timestamp then
+        self.text:SetText(string.format("[%s] %s%s", date('%H:%M:%S', binding.timestamp), self.types[binding.type], binding.message))
+    else
+        self.text:SetText(string.format("%s%s", self.types[binding.type], binding.message))
+    end
 end
 function ClassicEraCensusLogListviewItemMixin:ResetDataBinding()
     

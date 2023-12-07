@@ -10,7 +10,16 @@ local locale = GetLocale()
 
 local Census = {}
 
+Census.whoCooldown = 4.0;
+
 Census.version = tonumber(GetAddOnMetadata(name, "Version"));
+
+Census.levelRangeSelector = {
+    [19] = 60,
+    [9] = 20,
+    [4] = 10,
+    [1] = 5,
+}
 
 Census.factions = {
     Alliance = {
@@ -118,6 +127,12 @@ for _, letter1 in ipairs(alphabet) do
     end
 end
 
+function Census:SetWhoCooldown(val)
+    if type(val) == "number" then
+        self.whoCooldown = val;
+    end
+end
+
 function Census:GetCharactersTotalXP(currentLevel)
 
     local xp = 0;
@@ -149,9 +164,10 @@ function Census:RefineWhoParams()
     local index = 1-- self.currentQueryIndex;
     local query = self.whoQueries[index]
 
-    addon:TriggerEvent("Census_LogMessage", "who", string.format("current query: %s", query.who))
+    --addon:TriggerEvent("Census_LogMessage", "warning", "current query returned to many results")
+    --addon:TriggerEvent("Census_LogMessage", "who", string.format("current query: %s", query.who))
     addon:TriggerEvent("Census_LogMessage", "warning", "removing current query as it returns 50+ results")
-    addon:TriggerEvent("Census_LogMessage", "warning", string.format("current level range is %d", self.currentLevelRange))
+    --addon:TriggerEvent("Census_LogMessage", "warning", string.format("current level range is %d", self.currentLevelRange))
     
 
     local rangeSet;
@@ -212,11 +228,11 @@ function Census:RefineWhoParams()
 
     else
 
-        addon:TriggerEvent("Census_LogMessage", "warning", "no rangeSet selected")
+        addon:TriggerEvent("Census_LogMessage", "warning", "no level rangeSet selected")
 
         if not query.zone then
 
-            addon:TriggerEvent("Census_LogMessage", "info", "trying to reduce results using zones")
+            addon:TriggerEvent("Census_LogMessage", "info", "trying to reduce results using zones (could be a while!)")
 
             for k, zone in ipairs(self.zones) do
 
@@ -382,24 +398,18 @@ function Census:ProcessWhoResults()
 
     table.insert(self.processedQueries, 1, self.whoQueries[1])
 
-    addon:TriggerEvent("Census_LogMessage", "info", string.format("current level range is %s", self.currentLevelRange))
+
+    --addon:TriggerEvent("Census_LogMessage", "info", string.format("current level range is %s", self.currentLevelRange))
     if self.whoQueries[2] then
         local currentWhoMinLevel = self.whoQueries[2].minLevel
         local currentWhoMaxLevel = self.whoQueries[2].maxLevel
         local rangeDiff = (currentWhoMaxLevel - currentWhoMinLevel)
 
-        local diffs = {
-            [19] = 60,
-            [9] = 20,
-            [4] = 10,
-            [1] = 5,
-        }
-
-        if diffs[rangeDiff] then
-            self.currentLevelRange = diffs[rangeDiff];
+        if self.levelRangeSelector[rangeDiff] then
+            self.currentLevelRange = self.levelRangeSelector[rangeDiff];
         end
     end
-    addon:TriggerEvent("Census_LogMessage", "info", string.format("new level range is %s", self.currentLevelRange))
+    --addon:TriggerEvent("Census_LogMessage", "info", string.format("new level range is %s", self.currentLevelRange))
 
     table.remove(self.whoQueries, 1)
 
@@ -412,9 +422,10 @@ function Census:ProcessWhoResults()
     end
 end
 
+
 function Census:AttemptNextWhoQuery()
 
-    if time() > (self.previousWhoAttemptTime + 3) then
+    if time() > (self.previousWhoAttemptTime + self.whoCooldown) then
 
         --check if the previous query involved level ranges
         local query = self.whoQueries[self.currentQueryIndex]

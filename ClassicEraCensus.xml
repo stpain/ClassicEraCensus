@@ -350,6 +350,12 @@
                             </Layer>
                         </Layers>
                         <Frames>
+                            <Slider name="ClassicEraCensusOptionsWhoCooldown" parentKey="whoCooldown" minValue="3" maxValue="10" defaultValue="1" inherits="ClassicEraCensusSlider">
+                                <Size x="100" y="16"/>
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" x="90" y="-30"/>
+                                </Anchors>
+                            </Slider>
                             <CheckButton parentKey="race1" parentArray="raceFilters" inherits="ClassicEraCensusCheckButton">
                                 <Anchors>
                                     <Anchor point="TOPLEFT" x="16" y="-70"/>

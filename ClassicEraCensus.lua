@@ -207,6 +207,7 @@ function ClassicEraCensusMixin:Census_LogMessage(type, msg)
     self.log.whoListview.DataProvider:Insert({
         type = type,
         message = msg,
+        timestamp = time(),
     })
     self.log.whoListview.scrollBox:ScrollToEnd()
 
@@ -320,6 +321,7 @@ function ClassicEraCensusMixin:SetupOptionsTab()
     local sliders = {
         ["Min level"] = "minLevel",
         ["Max level"] = "maxLevel",
+        ["Who interval"] = "whoCooldown",
     }
 
     for label, slider in pairs(sliders) do
@@ -331,14 +333,32 @@ function ClassicEraCensusMixin:SetupOptionsTab()
         _G[self.options.customCensus[slider]:GetName().."Text"]:SetText(" ")
 
         self.options.customCensus[slider]:SetScript("OnMouseWheel", function(s, delta)
-            s:SetValue(s:GetValue() + delta)
+
+            if slider == "whoCooldown" then
+                delta = delta/10
+                s:SetValue(s:GetValue() + delta)
+            else
+                s:SetValue(s:GetValue() + delta)
+            end
         end)
 
         self.options.customCensus[slider]:SetScript("OnValueChanged", function(s)
-            s.value:SetText(math.ceil(s:GetValue()))
+            local x = s:GetValue() -- math.ceil(s:GetValue())
+            x = tonumber(string.format("%.2f", x))
+            s.value:SetText(x)
+
+            --special func for who cd
+            if slider == "whoCooldown" then
+                Database:SetConfig("whoCooldown", x)
+                if self.currentCensus then
+                    self.currentCensus:SetWhoCooldown(x)
+                end
+            end
         end)
     end
 
+    local whoCD = Database:GetConfig("whoCooldown")
+    self.options.customCensus.whoCooldown:SetValue(whoCD)
     self.options.customCensus.minLevel:SetValue(1)
     self.options.customCensus.maxLevel:SetValue(60)
 
@@ -469,6 +489,10 @@ function ClassicEraCensusMixin:SetupOptionsTab()
         self.export.exportJSON.EditBox:SetText(encoded)
 
     end)
+end
+
+function ClassicEraCensusMixin:SetupExportTab()
+    
 end
 
 --setup the home tab, charts, filters etc
@@ -793,6 +817,8 @@ function ClassicEraCensusMixin:Census_Start()
     local region = Database:GetConfig("region")
 
     self.currentCensus = Census:New(name, realm, faction, region)
+    local whoCD = Database:GetConfig("whoCooldown")
+    self.currentCensus:SetWhoCooldown(whoCD)
 
     self.isCensusInProgress = true;
 
@@ -1048,17 +1074,23 @@ end
 
 function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
 
+    --print("LoadCensusGroup()")
+
     self:ResetHomeCharts()
 
     if not censusGroup then
         censusGroup = { self.currentCensus }
+
+        --print("using self.census")
     end
 
     if #censusGroup == 0 then
         return
     end
 
-    local faction = censusGroup[1].faction;
+    local faction = censusGroup[1].meta.faction;
+
+    --print(faction)
 
     if not faction then
         faction = self.faction;
@@ -1072,11 +1104,13 @@ function ClassicEraCensusMixin:LoadCensusGroup(censusGroup)
     local characters = {}
 
     for _, census in ipairs(censusGroup) do
-        if census.faction == faction then
+        if census.meta.faction == faction then
             for k, character in ipairs(census.characters) do
 
                 --local name, level, race, class, guild = self:GetCharacterInfo(character)
                 local xp = self:GetCharactersTotalXP(character.level)
+
+                --print(character.name)
 
                 if not charactersSeen[character.name] then
 

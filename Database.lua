@@ -5,6 +5,7 @@ local name, addon = ...;
 local configDefaults = {
     ["minimapButton"] = {},
     ["region"] = "EU",
+    ["whoCooldown"] = 4.0
 }
 
 local Database = {};

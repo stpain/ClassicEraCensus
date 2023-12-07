@@ -1,6 +1,6 @@
-## Interface: 11403
+## Interface: 11500
 ## Author: Sam
-## Version: 1.0
+## Version: 1.1
 ## Title: ClassicEraCensus
 ## Notes: Take a census of Azeroth
 ## SavedVariables: ClassicEraCensus_Account

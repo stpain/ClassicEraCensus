@@ -10,7 +10,7 @@ function ClassicEraCensusListviewMixin:OnLoad()
     local height = self.elementHeight;
     self.scrollView:SetElementExtent(height);
 
-    self.scrollView:SetElementInitializer("FRAME", self.itemTemplate, GenerateClosure(self.OnElementInitialize, self));
+    self.scrollView:SetElementInitializer(self.itemTemplate, GenerateClosure(self.OnElementInitialize, self));
     self.scrollView:SetElementResetter(GenerateClosure(self.OnElementReset, self));
 
     self.selectionBehavior = ScrollUtil.AddSelectionBehavior(self.scrollView);
